@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { WishlistProvider } from "@/components/WishlistContext";
+import { CartProvider } from "@/components/CartContext";
+import { AuthProvider } from "@/components/AuthContext";
 
 export const metadata: Metadata = {
   title: "BookStore",
@@ -16,11 +18,15 @@ export default function RootLayout({
   return (
     <html lang="en">
      <body className="bg-[#F8F4EC] text-[#071A33]">
-  <WishlistProvider>
-    <Navbar />
-    {children}
-  </WishlistProvider>
-</body>
+        <AuthProvider>
+          <WishlistProvider>
+            <CartProvider>
+              <Navbar />
+              {children}
+            </CartProvider>
+          </WishlistProvider>
+        </AuthProvider>
+      </body>
     </html>
   );
 }

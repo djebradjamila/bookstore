@@ -1,26 +1,4 @@
 
-
-const popularBooks = [
-  {
-    title: "The Little Prince",
-    author: "Antoine de Saint-Exupéry",
-    price: 1200,
-    image: "/books/petit-prince.jpg",
-  },
-  {
-    title: "Python for Beginners",
-    author: "Mark Lutz",
-    price: 2500,
-    image: "/books/python.jpg",
-  },
-  {
-    title: "Mathematics for Everyone",
-    author: "Jean Dupont",
-    price: 1800,
-    image: "/books/maths.jpg",
-  },
-];
-
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#F8F4EC]">
@@ -92,65 +70,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Popular Books */}
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <div className="mb-10 flex items-end justify-between">
-          <div>
-            <p className="font-semibold uppercase tracking-widest text-[#B8892D]">
-              Our Collection
-            </p>
+     {/* About BookStore */}
 
-            <h2 className="mt-2 text-4xl font-bold text-[#071A33]">
-              Popular Books
+     <section className="border-t border-[#071A33]/5 bg-white">
+       <div className="mx-auto max-w-7xl px-6 py-20">
+         <div className="mx-auto max-w-3xl text-center">
+            <p className="font-semibold uppercase tracking-[0.2em] text-[#B8892D]">
+             About BookStore
+            </p>
+            <h2 className="mt-3 text-4xl font-bold text-[#071A33] md:text-5xl">
+              Your Place for Great Books
             </h2>
+            <p className="mt-6 text-lg leading-8 text-gray-600">
+              BookStore is a modern online bookstore designed to make
+              discovering and choosing books simple, enjoyable, and convenient.
+            </p>
+            <p className="mt-4 text-lg leading-8 text-gray-600">
+              Explore different categories, search for your favorite books,
+              save books to your wishlist, and add your favorite titles to
+              your shopping cart.
+            </p>
           </div>
 
-          <a
-            href="/books"
-            className="font-semibold text-[#B8892D] hover:text-[#071A33]"
-          >
-            View All →
-          </a>
-        </div>
-
-        <div className="grid gap-8 md:grid-cols-3">
-          {popularBooks.map((book) => (
-            <div
-              key={book.title}
-              className="overflow-hidden rounded-2xl bg-white shadow-md transition hover:-translate-y-2 hover:shadow-xl"
-            >
-              <img
-                src={book.image}
-                alt={book.title}
-                className="h-72 w-full object-cover"
-              />
-
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-[#071A33]">
-                  {book.title}
-                </h3>
-
-                <p className="mt-2 text-gray-500">
-                  {book.author}
-                </p>
-
-                <div className="mt-5 flex items-center justify-between">
-                  <span className="text-xl font-bold text-[#B8892D]">
-                    {book.price} DZD
-                  </span>
-
-                  <a
-                    href="/book"
-                    className="rounded-full bg-[#071A33] px-5 py-2 text-sm font-semibold text-white hover:bg-[#102B4D]"
-                  >
-                    View Book
-                  </a>
-                </div>
-              </div>
-            </div>
-          ))}
+         {/* Contact Us  */}
+         <div className="mt-14 text-center">
+           <a
+             href="/contUs"
+             className="inline-block rounded-full bg-[#071A33] px-8 py-4 font-semibold text-white shadow-md transition hover:-translate-y-1 hover:bg-[#102B4D]"
+              >
+               Contact Us →
+            </a>
+          </div>
         </div>
       </section>
-    </main>
+   </main>
+
   );
 }

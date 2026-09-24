@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useWishlist } from "@/components/WishlistContext";
+import { useCart } from "@/components/CartContext";
 
 const books = [
   {
@@ -28,23 +30,24 @@ const books = [
 ];
 
 export default function Books() {
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const categoryFromUrl = searchParams.get("category");
+  const searchFromUrl = searchParams.get("search") || "";
+const [search, setSearch] = useState(searchFromUrl);
   const [category, setCategory] = useState("All Categories");
   const [sort, setSort] = useState("Sort by");
   const { wishlist, toggleWishlist, isWishlisted } = useWishlist();
-
-  // Wishlist
+  const { addToCart } = useCart();
   
-
   // Search + Category
-  const filteredBooks = books
-    .filter((book) => {
+  const activeCategory = categoryFromUrl || category;
+  const filteredBooks = books.filter((book) => {
       const matchesSearch = `${book.title} ${book.author}`
         .toLowerCase()
         .includes(search.toLowerCase());
 
-      const matchesCategory =
-        category === "All Categories" || book.category === category;
+     const matchesCategory =
+     activeCategory === "All Categories" || book.category === activeCategory;
 
       return matchesSearch && matchesCategory;
     })
@@ -71,7 +74,7 @@ export default function Books() {
 
       {/* Page Header */}
       <section className="bg-[#F8F4EC] px-6 py-16">
-        <div className="mx-auto max-w-7xl">
+        <div className="text-center">
           <p className="font-semibold uppercase tracking-[0.25em] text-[#B8892D]">
             Our Collection
           </p>
@@ -80,7 +83,7 @@ export default function Books() {
             All Books
           </h1>
 
-          <p className="mt-4 max-w-xl text-gray-600">
+          <p className="text-center ">
             Explore our collection and discover your next favorite book.
           </p>
         </div>
@@ -177,7 +180,20 @@ export default function Books() {
         {filteredBooks.length > 0 ? (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
 
-            {filteredBooks.map((book) => {
+            {filteredBooks.length === 0 ? (
+  <div className="col-span-full py-20 text-center">
+    <div className="text-5xl">📚</div>
+
+    <h2 className="mt-4 text-2xl font-bold text-[#071A33]">
+      No books found
+    </h2>
+
+    <p className="mt-2 text-gray-500">
+      We couldn't find any book matching your search.
+    </p>
+  </div>
+) : (
+  filteredBooks.map((book) => {
               
 
               return (
@@ -260,41 +276,54 @@ export default function Books() {
                     {/* Divider */}
                     <div className="my-5 h-px bg-gray-100" />
 
-                    {/* Price + Button */}
-                    <div className="flex items-center justify-between gap-4">
+                 {/* Price + Buttons */}
+                <div className="flex flex-col gap-4">
 
-                      {/* Price */}
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-gray-400">
-                          Price
-                        </p>
+                 {/* Price */}
+                <div>
+                <p className="text-xs uppercase tracking-wider text-gray-400">
+                  Price
+                </p>
 
-                        <p className="mt-1 text-2xl font-extrabold text-[#071A33]">
-                          {book.price.toLocaleString("fr-FR")}
-                          <span className="ml-1 text-sm font-semibold text-[#B8892D]">
-                            DZD
-                          </span>
-                        </p>
-                      </div>
+               <p className="mt-1 text-2xl font-extrabold text-[#071A33]">
+                 {book.price.toLocaleString("fr-FR")}
+                 <span className="ml-1 text-sm font-semibold text-[#B8892D]">
+                   DZD
+                  </span>
+                </p>
+              </div>
 
-                      {/* View Book */}
-                      <a
-                        href="/book"
-                        className="group/button inline-flex items-center gap-2 rounded-full bg-[#071A33] px-5 py-3 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#E8B04A] hover:text-[#071A33] hover:shadow-lg"
-                      >
-                        View Book
+          {/* Buttons */}
+         <div className="flex flex-col gap-2 sm:flex-row">
 
-                        <span className="transition-transform duration-300 group-hover/button:translate-x-1">
-                          →
-                        </span>
-                      </a>
+         {/* Add to Cart */}
+          <button
+            type="button"
+            onClick={() => addToCart({title: book.title,author: book.author,price: book.price,image: book.image,})}
+           className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#E8B04A] px-4 py-3 text-sm font-semibold text-[#071A33] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#F3C866] hover:shadow-lg"
+           >
+           🛒 Add to Cart
+         </button>
 
-                    </div>
+        {/* View Book */}
+        <a
+         href={`/book?title=${encodeURIComponent(book.title)}`}
+          className="group/button inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#071A33] px-4 py-3 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#E8B04A] hover:text-[#071A33] hover:shadow-lg"
+          >
+          View Book
 
+          <span className="transition-transform duration-300 group-hover/button:translate-x-1">
+           →
+          </span>
+        </a>
+
+      </div>
+    </div>
                   </div>
                 </article>
               );
-            })}
+            })
+          )}
 
           </div>
         ) : (
