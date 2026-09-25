@@ -1,47 +1,98 @@
-
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "@/components/CartContext";
 
-const books = [
-  {
-    title: "The Little Prince",
-    author: "Antoine de Saint-Exupéry",
-    price: 1200,
-    category: "Novels",
-    description:
-      "An unforgettable story full of poetry, friendship, and discovery.",
-    image: "/books/petit-prince.jpg",
-  },
-  {
-    title: "Python for Beginners",
-    author: "Mark Lutz",
-    price: 2500,
-    category: "Computer Science",
-    description:
-      "A practical introduction to Python programming for beginners.",
-    image: "/books/python.jpg",
-  },
-  {
-    title: "Mathematics for Everyone",
-    author: "Jean Dupont",
-    price: 1800,
-    category: "Mathematics",
-    description:
-      "An accessible book designed to make mathematics easier and more enjoyable.",
-    image: "/books/maths.jpg",
-  },
-];
+type Book = {
+  id: string;
+  title: string;
+  author: string;
+  price: number;
+  category: string;
+  image: string;
+  description: string;
+};
 
-export default function BookDetails() {
+function BookDetailsContent() {
   const searchParams = useSearchParams();
   const title = searchParams.get("title");
 
   const { addToCart } = useCart();
 
-  const book =
-    books.find((item) => item.title === title) || books[0];
+  const [book, setBook] = useState<Book | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchBook = async () => {
+      try {
+        const response = await fetch("/api/books");
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Failed to fetch books");
+        }
+
+        const formattedBooks: Book[] = data.books.map((item: any) => ({
+          id: item.id?.S || "",
+          title: item.title?.S || "",
+          author: item.author?.S || "",
+          price: Number(item.price?.N || 0),
+          category: item.category?.S || "",
+          image: item.image?.S || "",
+          description:
+            item.description?.S ||
+            "An accessible book designed to make learning easier and more enjoyable.",
+        }));
+
+        const selectedBook = formattedBooks.find(
+          (item) => item.title === title
+        );
+
+        if (!selectedBook) {
+          setError("Book not found.");
+          return;
+        }
+
+        setBook(selectedBook);
+      } catch (err) {
+        console.error(err);
+        setError("Unable to load the book.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBook();
+  }, [title]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#F8F4EC] p-10">
+        <div className="mx-auto max-w-4xl py-20 text-center">
+          <div className="text-5xl">📚</div>
+          <p className="mt-4 text-gray-500">Loading book...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error || !book) {
+    return (
+      <main className="min-h-screen bg-[#F8F4EC] p-10">
+        <div className="mx-auto max-w-4xl rounded-2xl bg-white p-12 text-center shadow-md">
+          <div className="text-5xl">📚</div>
+          <h1 className="mt-5 text-2xl font-bold text-[#071A33]">
+            Book not found
+          </h1>
+          <p className="mt-2 text-gray-500">
+            {error || "This book does not exist."}
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#F8F4EC] p-10">
@@ -98,4 +149,10 @@ export default function BookDetails() {
     </main>
   );
 }
-
+export default function BookDetails() {
+  return (
+    <Suspense fallback={<div>Loading book...</div>}>
+      <BookDetailsContent />
+    </Suspense>
+  );
+}

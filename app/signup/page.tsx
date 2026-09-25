@@ -18,45 +18,45 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-
-    setError("");
-    setSuccess("");
+ const handleSubmit = async (event: React.FormEvent) => {
+   event.preventDefault();
+   setError("");
+   setSuccess("");
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
-    const existingUser = localStorage.getItem(`user_${email}`);
+    try {
+     const response = await fetch("/api/users", {
+        method: "POST",
+        headers: {
+         "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name,email,password,}),
+      });
 
-    if (existingUser) {
-      setError("An account with this email already exists.");
-      return;
-    }
+      const data = await response.json();
 
-    const user = {
-      name,
-      email,
-      password,
-    };
+      if (!response.ok) {
+        setError(data.error || "Unable to create account.");
+        return;
+      }
 
-    // Save account
-    localStorage.setItem(`user_${email}`, JSON.stringify(user));
+      login({
+        name: data.user.name,
+        email: data.user.email,
+      });
 
-    // Log the user in immediately
-    login({
-      name: user.name,
-      email: user.email,
-    });
+      setSuccess("Account created successfully!");
 
-    setSuccess("Account created successfully!");
-
-    // Go to Home
-    setTimeout(() => {
       router.push("/");
-    }, 800);
+    } 
+    catch (error) {
+     console.error("Sign up error:", error);
+     setError("Unable to connect to the server.");
+    }
   };
 
   return (
@@ -164,9 +164,7 @@ export default function SignUp() {
                 id="confirmPassword"
                 type={showPassword ? "text" : "password"}
                 value={confirmPassword}
-                onChange={(event) =>
-                  setConfirmPassword(event.target.value)
-                }
+                onChange={(event) => setConfirmPassword(event.target.value)}
                 placeholder="Confirm your password"
                 required
                 minLength={6}
@@ -212,4 +210,3 @@ export default function SignUp() {
     </main>
   );
 }
-

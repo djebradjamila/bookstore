@@ -22,6 +22,7 @@ type CartContextType = {
   removeFromCart: (title: string) => void;
   increaseQuantity: (title: string) => void;
   decreaseQuantity: (title: string) => void;
+  clearCart: () => void;
 };
 
 const CartContext = createContext<CartContextType | undefined>(
@@ -36,16 +37,28 @@ export function CartProvider({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  
   // Load cart from localStorage
-  useEffect(() => {
-    const storedCart = localStorage.getItem("cart");
+useEffect(() => {
+  const storedUser = localStorage.getItem("currentUser");
 
-    if (storedCart) {
-      setCart(JSON.parse(storedCart));
-    }
-
+  // Visitor: start with an empty cart after refresh
+  if (!storedUser) {
+    localStorage.removeItem("cart");
+    setCart([]);
     setIsLoaded(true);
-  }, []);
+    return;
+  }
+
+  // Logged-in user: restore the cart
+  const storedCart = localStorage.getItem("cart");
+
+  if (storedCart) {
+    setCart(JSON.parse(storedCart));
+  }
+
+  setIsLoaded(true);
+}, []);
 
   // Save cart to localStorage
   useEffect(() => {
@@ -118,7 +131,9 @@ export function CartProvider({
         .filter((item) => item.quantity > 0)
     );
   };
-
+  const clearCart = () => {
+    setCart([]);
+  };
   return (
     <CartContext.Provider
       value={{
@@ -127,6 +142,7 @@ export function CartProvider({
         removeFromCart,
         increaseQuantity,
         decreaseQuantity,
+        clearCart,
       }}
     >
       {children}

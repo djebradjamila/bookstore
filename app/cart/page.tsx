@@ -125,20 +125,20 @@ export default function Cart() {
 
               {/* Checkout */}
               {isAuthenticated ? (
-                <a
-                  href="/checkout"
-                  className="mt-5 inline-block rounded-full bg-[#071A33] px-8 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
-                >
-                  Checkout
-                </a>
-              ) : (
-                <a
-                  href="/signin"
-                  className="mt-5 inline-block rounded-full bg-[#071A33] px-8 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
-                >
-                  Checkout
-                </a>
-              )}
+                 <a
+                   href="/checkout"
+                   className="mt-5 inline-block rounded-full bg-[#071A33] px-8 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
+                   >
+                    Checkout
+                 </a>
+                ) : (
+                  <a
+                    href="/signin?redirect=/checkout"
+                    className="mt-5 inline-block rounded-full bg-[#071A33] px-8 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
+                    >
+                    Checkout
+                  </a>
+                )}
 
             </div>
           </div>

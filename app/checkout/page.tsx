@@ -1,13 +1,24 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/components/CartContext";
 import { useAuth } from "@/components/AuthContext";
 import Link from "next/link";
 
 export default function Checkout() {
-  const { cart } = useCart();
+  const router = useRouter();
+  const { cart, clearCart } = useCart();
   const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState("");
+
+  useEffect(() => {
+    if (!user && cart.length > 0) {
+      router.push("/signin?redirect=/checkout");
+    }
+  }, [user, cart.length, router]);
 
   const subtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -38,7 +49,45 @@ export default function Checkout() {
       </main>
     );
   }
+    const handlePlaceOrder = async () => {
+    if (!user) {
+      router.push("/signin?redirect=/checkout");
+      return;
+    }
 
+    setIsSubmitting(true);
+    setOrderError("");
+
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userEmail: user.email,
+          items: cart,
+          total: subtotal,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setOrderError(data.error || "Unable to create the order.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("Order created:", data.order);
+       clearCart();
+      router.push(`/order-success?orderId=${data.order.orderId}`);
+    } catch (error) {
+      console.error("Create order error:", error);
+      setOrderError("Unable to connect to the server.");
+      setIsSubmitting(false);
+    }
+  };
   return (
     <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
       <div className="mx-auto max-w-5xl">
@@ -138,12 +187,17 @@ export default function Checkout() {
                   {subtotal.toLocaleString("fr-FR")} DZD
                 </span>
               </div>
-
+              {orderError && (
+                <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                  {orderError}
+                </p>
+              )}
               <button
                 type="button"
+                onClick={handlePlaceOrder}
                 className="mt-6 w-full rounded-full bg-[#071A33] px-6 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
               >
-                Place Order
+                {isSubmitting ? "Creating Order..." : "Place Order"}
               </button>
             </div>
           </div>
