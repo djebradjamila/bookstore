@@ -33,22 +33,24 @@ function BooksContent() {
 
   // Fetch books from DynamoDB through our API
   useEffect(() => {
+    
     const fetchBooks = async () => {
       try {
-        const response = await fetch("/api/books");
+       
+        const response = await fetch(`${window.location.origin}/api/books`);
+        
         const data = await response.json();
 
         if (!response.ok || !data.success) {
           throw new Error(data.message || "Failed to fetch books");
         }
-
         const formattedBooks: Book[] = data.books.map((book: any) => ({
-          id: book.id?.S || "",
-          title: book.title?.S || "",
-          author: book.author?.S || "",
-          price: Number(book.price?.N || 0),
-          category: book.category?.S || "",
-          image: book.image?.S || "",
+          id: book.id?.S || book.id || "",
+          title: book.title?.S || book.title || "",
+          author: book.author?.S || book.author || "",
+          price: Number(book.price?.N || book.price || 0),
+          category: book.category?.S || book.category || "",
+          image: book.image?.S || book.image || "",
         }));
 
         setBooks(formattedBooks);

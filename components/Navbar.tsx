@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import { useWishlist } from "@/components/WishlistContext";
 import { useCart } from "@/components/CartContext";
 import { useAuth } from "@/components/AuthContext";
@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 
 export default function Navbar() {
   const router = useRouter();
+
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -29,40 +30,48 @@ export default function Navbar() {
       return;
     }
 
-    window.location.href = `/books?search=${encodeURIComponent(
-      search.trim()
-    )}`;
+    router.push(
+      `/books?search=${encodeURIComponent(search.trim())}`
+    );
+
+    setSearchOpen(false);
   };
+
   const handleLogout = () => {
     logout();
-
-    // Clear the current user's wishlist
     localStorage.removeItem("wishlist");
-
-    // Return to Home
     router.push("/");
   };
+  const closeMobileMenu = (
+    event: React.MouseEvent<HTMLAnchorElement>
+  ) => {
+   const details = event.currentTarget.closest("details");
+
+     if (details) {
+      details.removeAttribute("open");
+    }
+  };
+
   return (
-    <nav className="sticky top-0 z-50 bg-[#071A33] px-6 py-4 text-white shadow-lg">
-      <div className="mx-auto flex max-w-7xl items-center gap-6">
+    <nav className="sticky top-0 z-50 bg-[#071A33] px-4 py-3 text-white shadow-lg sm:px-6 sm:py-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
 
         {/* Logo */}
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 text-xl font-bold"
+          className="flex shrink-0 items-center gap-2 text-lg font-bold sm:text-xl"
         >
-          <span className="text-2xl">📖</span>
+          <span className="text-xl sm:text-2xl">📖</span>
 
           <span>
             Book<span className="text-[#E8B04A]">Store</span>
           </span>
         </Link>
 
-        {/* Navigation OR Search */}
-        <div className="flex flex-1 items-center justify-center">
-
+        {/* Desktop navigation */}
+        <div className="hidden flex-1 items-center justify-center md:flex">
           {!searchOpen ? (
-            <div className="hidden items-center gap-7 md:flex">
+            <div className="flex items-center gap-6 lg:gap-7">
               <Link
                 href="/"
                 className="transition hover:text-[#E8B04A]"
@@ -83,7 +92,11 @@ export default function Navbar() {
               >
                 Categories
               </Link>
-              <Link href="/contUs" className="transition hover:text-[#E8B04A]">
+
+              <Link
+                href="/contUs"
+                className="transition hover:text-[#E8B04A]"
+              >
                 Contact
               </Link>
             </div>
@@ -95,7 +108,9 @@ export default function Navbar() {
               <input
                 type="text"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
                 placeholder="Search books or authors..."
                 autoFocus
                 className="flex-1 px-5 py-2.5 text-[#071A33] outline-none"
@@ -103,19 +118,17 @@ export default function Navbar() {
 
               <button
                 type="submit"
-                className="bg-[#E8B04A] px-6 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
+                className="bg-[#E8B04A] px-6 font-semibold text-[#071A33]"
               >
                 Search
               </button>
             </form>
           )}
-
         </div>
 
-        {/* Actions */}
-        <div className="flex shrink-0 items-center gap-4">
+        {/* Desktop actions */}
+        <div className="hidden shrink-0 items-center gap-4 md:flex">
 
-          {/* Search */}
           <button
             type="button"
             onClick={() => setSearchOpen(!searchOpen)}
@@ -124,7 +137,6 @@ export default function Navbar() {
             {searchOpen ? "✕" : "🔍"}
           </button>
 
-          {/* Wishlist */}
           <Link
             href="/wishlist"
             className="text-lg transition hover:text-[#E8B04A]"
@@ -132,7 +144,6 @@ export default function Navbar() {
             ♡ {wishlist.length}
           </Link>
 
-          {/* Cart */}
           <Link
             href="/cart"
             className="text-lg transition hover:text-[#E8B04A]"
@@ -140,35 +151,158 @@ export default function Navbar() {
             🛒 {cartCount}
           </Link>
 
-          {/* Sign In 
-          <Link
-            href="/signin"
-            className="rounded-md bg-[#E8B04A] px-5 py-2 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
-          >
-            Sign In
-          </Link>*/}
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
-              <span className="font-semibold text-white">
+              <span className="max-w-[150px] truncate font-semibold">
                 👤 {user?.name}
               </span>
 
-             <button
-               type="button"
-               onClick={handleLogout}
-               className="rounded-md bg-[#E8B04A] px-4 py-2 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
-                >
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="rounded-md bg-[#E8B04A] px-4 py-2 font-semibold text-[#071A33]"
+              >
                 Sign Out
-               </button>
+              </button>
             </div>
           ) : (
-           <Link
+            <Link
               href="/signin"
-              className="rounded-md bg-[#E8B04A] px-5 py-2 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
-              >
+              className="rounded-md bg-[#E8B04A] px-5 py-2 font-semibold text-[#071A33]"
+            >
               Sign In
             </Link>
           )}
+        </div>
+
+        {/* Mobile actions */}
+        <div className="flex items-center gap-3 md:hidden">
+
+          <Link
+            href="/wishlist"
+            className="text-lg"
+          >
+            ♡ {wishlist.length}
+          </Link>
+
+          <Link
+            href="/cart"
+            className="text-lg"
+          >
+            🛒 {cartCount}
+          </Link>
+
+          {/* Native mobile menu */}
+          <details className="relative">
+            <summary className="list-none cursor-pointer p-2 text-2xl">
+              ☰
+            </summary>
+
+            <div className="absolute right-0 top-12 z-[100] w-64 rounded-xl bg-[#071A33] p-5 shadow-2xl">
+
+              <form
+                onSubmit={handleSearch}
+                className="mb-5 flex overflow-hidden rounded-full bg-white"
+              >
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(event) =>
+                    setSearch(event.target.value)
+                  }
+                  placeholder="Search books..."
+                  className="min-w-0 flex-1 px-4 py-2 text-[#071A33] outline-none"
+                />
+
+                <button
+                  type="submit"
+                  className="bg-[#E8B04A] px-4 text-[#071A33]"
+                >
+                  🔍
+                </button>
+              </form>
+
+              <div className="flex flex-col gap-4">
+
+                <Link
+                  href="/"
+                  onClick={closeMobileMenu}
+                  className="hover:text-[#E8B04A]"
+                >
+                  Home
+                </Link>
+
+                <Link
+                  href="/books"
+                  onClick={closeMobileMenu}
+                  className="hover:text-[#E8B04A]"
+                >
+                  Books
+                </Link>
+
+                <Link
+                  href="/categories"
+                  onClick={closeMobileMenu}
+                  className="hover:text-[#E8B04A]"
+                >
+                  Categories
+                </Link>
+
+                <Link
+                  href="/contUs"
+                  onClick={closeMobileMenu}
+                  className="hover:text-[#E8B04A]"
+                >
+                  Contact
+                </Link>
+
+                <Link
+                  href="/wishlist"
+                  onClick={closeMobileMenu}
+                  className="hover:text-[#E8B04A]"
+                >
+                  ♡ Wishlist ({wishlist.length})
+                </Link>
+
+                <Link
+                  href="/cart"
+                  onClick={closeMobileMenu}
+                  className="hover:text-[#E8B04A]"
+                >
+                  🛒 Cart ({cartCount})
+                </Link>
+
+                <div className="border-t border-white/10 pt-4">
+
+                  {isAuthenticated ? (
+                    <div className="flex flex-col gap-3">
+                      <span className="font-semibold">
+                        👤 {user?.name}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        
+                        className="w-fit rounded-md bg-[#E8B04A] px-5 py-2 font-semibold text-[#071A33]"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
+                  ) : (
+                    <Link
+                      href="/signin"
+                      onClick={closeMobileMenu}
+                      className="inline-block rounded-md bg-[#E8B04A] px-5 py-2 font-semibold text-[#071A33]"
+                    >
+                      Sign In
+                    </Link>
+                  )}
+
+                </div>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     </nav>
