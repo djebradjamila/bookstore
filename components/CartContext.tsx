@@ -1,10 +1,10 @@
-
 "use client";
 
 import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -37,31 +37,90 @@ export function CartProvider({
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  
-  // Load cart from localStorage
-useEffect(() => {
- // Restore the cart from localStorage
-  const storedCart = localStorage.getItem("cart");
+  const previousUser = useRef<string | null>(null);
 
-   if (storedCart) {
-     try {
-       setCart(JSON.parse(storedCart));
+  // Load cart when the application starts
+  useEffect(() => {
+    const storedUser = localStorage.getItem("currentUser");
+
+    let currentUser: string | null = null;
+
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        currentUser = user.email?.trim().toLowerCase() || null;
       } catch {
-       localStorage.removeItem("cart");
+        currentUser = null;
+      }
+    }
+
+    previousUser.current = currentUser;
+
+    const navigationEntry = performance.getEntriesByType(
+      "navigation"
+    )[0] as PerformanceNavigationTiming | undefined;
+
+    const isPageRefresh = navigationEntry?.type === "reload";
+
+    // Visitor + page refresh:
+    // start with an empty cart.
+    if (!currentUser && isPageRefresh) {
+      localStorage.removeItem("cart");
+      setCart([]);
+      setIsLoaded(true);
+      return;
+    }
+
+    // Otherwise restore the cart.
+    const storedCart = localStorage.getItem("cart");
+
+    if (storedCart) {
+      try {
+        setCart(JSON.parse(storedCart));
+      } catch {
+        localStorage.removeItem("cart");
         setCart([]);
       }
     }
 
     setIsLoaded(true);
-
-    if (storedCart) {
-      setCart(JSON.parse(storedCart));
-    }
-
-    setIsLoaded(true);
   }, []);
 
-  // Save cart to localStorage
+  // Detect login/logout changes
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    const checkUser = () => {
+      const storedUser = localStorage.getItem("currentUser");
+
+      let currentUser: string | null = null;
+
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          currentUser = user.email?.trim().toLowerCase() || null;
+        } catch {
+          currentUser = null;
+        }
+      }
+
+      // User signed out
+      if (previousUser.current && !currentUser) {
+        setCart([]);
+        localStorage.removeItem("cart");
+      }
+
+      previousUser.current = currentUser;
+    };
+
+    checkUser();
+
+    const interval = setInterval(checkUser, 500);
+
+    return () => clearInterval(interval);
+  }, [isLoaded]);
+
+  // Save cart
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -132,9 +191,11 @@ useEffect(() => {
         .filter((item) => item.quantity > 0)
     );
   };
+
   const clearCart = () => {
     setCart([]);
   };
+
   return (
     <CartContext.Provider
       value={{
@@ -162,4 +223,3 @@ export function useCart() {
 
   return context;
 }
-
