@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -37,19 +36,37 @@ export default function Navbar() {
     setSearchOpen(false);
   };
 
+  // Desktop logout
   const handleLogout = () => {
     logout();
     localStorage.removeItem("wishlist");
     router.push("/");
   };
+
+  // Close mobile menu after clicking a link
   const closeMobileMenu = (
     event: React.MouseEvent<HTMLAnchorElement>
   ) => {
-   const details = event.currentTarget.closest("details");
+    const details = event.currentTarget.closest("details");
 
-     if (details) {
+    if (details) {
       details.removeAttribute("open");
     }
+  };
+
+  // Mobile logout + close menu
+  const handleMobileLogout = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const details = event.currentTarget.closest("details");
+
+    if (details) {
+      details.removeAttribute("open");
+    }
+
+    logout();
+    localStorage.removeItem("wishlist");
+    router.push("/");
   };
 
   return (
@@ -128,7 +145,6 @@ export default function Navbar() {
 
         {/* Desktop actions */}
         <div className="hidden shrink-0 items-center gap-4 md:flex">
-
           <button
             type="button"
             onClick={() => setSearchOpen(!searchOpen)}
@@ -177,22 +193,15 @@ export default function Navbar() {
 
         {/* Mobile actions */}
         <div className="flex items-center gap-3 md:hidden">
-
-          <Link
-            href="/wishlist"
-            className="text-lg"
-          >
+          <Link href="/wishlist" className="text-lg">
             ♡ {wishlist.length}
           </Link>
 
-          <Link
-            href="/cart"
-            className="text-lg"
-          >
+          <Link href="/cart" className="text-lg">
             🛒 {cartCount}
           </Link>
 
-          {/* Native mobile menu */}
+          {/* Mobile menu */}
           <details className="relative">
             <summary className="list-none cursor-pointer p-2 text-2xl">
               ☰
@@ -200,6 +209,7 @@ export default function Navbar() {
 
             <div className="absolute right-0 top-12 z-[100] w-64 rounded-xl bg-[#071A33] p-5 shadow-2xl">
 
+              {/* Mobile search */}
               <form
                 onSubmit={handleSearch}
                 className="mb-5 flex overflow-hidden rounded-full bg-white"
@@ -222,6 +232,7 @@ export default function Navbar() {
                 </button>
               </form>
 
+              {/* Mobile links */}
               <div className="flex flex-col gap-4">
 
                 <Link
@@ -272,22 +283,23 @@ export default function Navbar() {
                   🛒 Cart ({cartCount})
                 </Link>
 
+                {/* Authentication */}
                 <div className="border-t border-white/10 pt-4">
-
                   {isAuthenticated ? (
                     <div className="flex flex-col gap-3">
+
                       <span className="font-semibold">
                         👤 {user?.name}
                       </span>
 
                       <button
                         type="button"
-                        onClick={handleLogout}
-                        
+                        onClick={handleMobileLogout}
                         className="w-fit rounded-md bg-[#E8B04A] px-5 py-2 font-semibold text-[#071A33]"
                       >
                         Sign Out
                       </button>
+
                     </div>
                   ) : (
                     <Link
@@ -298,14 +310,14 @@ export default function Navbar() {
                       Sign In
                     </Link>
                   )}
-
                 </div>
+
               </div>
             </div>
           </details>
         </div>
+
       </div>
     </nav>
   );
 }
-
