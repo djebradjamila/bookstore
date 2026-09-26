@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "@/components/CartContext";
+import Link from "next/link";
 
 type Book = {
   id: string;
@@ -96,6 +97,7 @@ function BookDetailsContent() {
 
   return (
     <main className="min-h-screen bg-[#F8F4EC] p-10">
+      
       <div className="mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow-md">
         <div className="grid gap-8 md:grid-cols-2">
 
@@ -129,20 +131,28 @@ function BookDetailsContent() {
             </p>
 
             {/* Add to Cart */}
-            <button
-              type="button"
-              onClick={() =>
-                addToCart({
-                  title: book.title,
-                  author: book.author,
-                  price: book.price,
-                  image: book.image,
-                })
-              }
-              className="mt-6 rounded-full bg-[#E8B04A] px-6 py-3 font-semibold text-[#071A33] shadow-md transition hover:bg-[#F3C866] hover:shadow-lg"
-            >
-              Add to Cart 🛒
-            </button>
+           <div className="mt-6 flex flex-wrap gap-3">
+             <button
+                type="button"
+                onClick={() =>
+                  addToCart({
+                    title: book.title,
+                    author: book.author,
+                    price: book.price,
+                    image: book.image,
+                  })
+                }
+               className="rounded-full bg-[#E8B04A] px-6 py-3 font-semibold text-[#071A33] shadow-md transition hover:bg-[#F3C866] hover:shadow-lg"
+               >
+                Add to Cart 🛒
+              </button>
+
+             <Link href="/wishlist"
+               className="rounded-full border border-[#071A33] px-6 py-3 font-semibold text-[#071A33] transition hover:bg-[#071A33] hover:text-white"
+               >
+               ← Back to Wishlist
+              </Link>
+            </div>
           </div>
         </div>
       </div>

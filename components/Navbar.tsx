@@ -6,8 +6,10 @@ import Link from "next/link";
 import { useWishlist } from "@/components/WishlistContext";
 import { useCart } from "@/components/CartContext";
 import { useAuth } from "@/components/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function Navbar() {
+  const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -31,7 +33,15 @@ export default function Navbar() {
       search.trim()
     )}`;
   };
+  const handleLogout = () => {
+    logout();
 
+    // Clear the current user's wishlist
+    localStorage.removeItem("wishlist");
+
+    // Return to Home
+    router.push("/");
+  };
   return (
     <nav className="sticky top-0 z-50 bg-[#071A33] px-6 py-4 text-white shadow-lg">
       <div className="mx-auto flex max-w-7xl items-center gap-6">
@@ -145,7 +155,7 @@ export default function Navbar() {
 
              <button
                type="button"
-               onClick={logout}
+               onClick={handleLogout}
                className="rounded-md bg-[#E8B04A] px-4 py-2 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
                 >
                 Sign Out
