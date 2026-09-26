@@ -40,25 +40,26 @@ export function CartProvider({
   
   // Load cart from localStorage
 useEffect(() => {
-  const storedUser = localStorage.getItem("currentUser");
-
-  // Visitor: start with an empty cart after refresh
-  if (!storedUser) {
-    localStorage.removeItem("cart");
-    setCart([]);
-    setIsLoaded(true);
-    return;
-  }
-
-  // Logged-in user: restore the cart
+ // Restore the cart from localStorage
   const storedCart = localStorage.getItem("cart");
 
-  if (storedCart) {
-    setCart(JSON.parse(storedCart));
-  }
+   if (storedCart) {
+     try {
+       setCart(JSON.parse(storedCart));
+      } catch {
+       localStorage.removeItem("cart");
+        setCart([]);
+      }
+    }
 
-  setIsLoaded(true);
-}, []);
+    setIsLoaded(true);
+
+    if (storedCart) {
+      setCart(JSON.parse(storedCart));
+    }
+
+    setIsLoaded(true);
+  }, []);
 
   // Save cart to localStorage
   useEffect(() => {
