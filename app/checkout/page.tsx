@@ -11,8 +11,10 @@ export default function Checkout() {
   const router = useRouter();
   const { cart, clearCart } = useCart();
   const { user } = useAuth();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState("");
+  const [address, setAddress] = useState("");
 
   useEffect(() => {
     if (!user && cart.length > 0) {
@@ -49,9 +51,16 @@ export default function Checkout() {
       </main>
     );
   }
-    const handlePlaceOrder = async () => {
+
+  const handlePlaceOrder = async () => {
     if (!user) {
       router.push("/signin?redirect=/checkout");
+      return;
+    }
+
+    // Validate delivery address
+    if (!address.trim()) {
+      setOrderError("Please enter your delivery address.");
       return;
     }
 
@@ -68,26 +77,38 @@ export default function Checkout() {
           userEmail: user.email,
           items: cart,
           total: subtotal,
+          address: address.trim(),
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setOrderError(data.error || "Unable to create the order.");
+        setOrderError(
+          data.error || "Unable to create the order."
+        );
         setIsSubmitting(false);
         return;
       }
 
       console.log("Order created:", data.order);
-       clearCart();
-      router.push(`/order-success?orderId=${data.order.orderId}`);
+
+      clearCart();
+
+      router.push(
+        `/order-success?orderId=${data.order.orderId}`
+      );
     } catch (error) {
       console.error("Create order error:", error);
-      setOrderError("Unable to connect to the server.");
+
+      setOrderError(
+        "Unable to connect to the server."
+      );
+
       setIsSubmitting(false);
     }
   };
+
   return (
     <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
       <div className="mx-auto max-w-5xl">
@@ -112,49 +133,65 @@ export default function Checkout() {
             </h2>
 
             <div className="space-y-4">
+
+              {/* Full Name */}
               <div>
                 <p className="text-sm text-gray-500">
                   Full Name
                 </p>
+
                 <p className="font-semibold text-[#071A33]">
                   {user?.name}
                 </p>
               </div>
 
+              {/* Email */}
               <div>
                 <p className="text-sm text-gray-500">
                   Email
                 </p>
+
                 <p className="font-semibold text-[#071A33]">
                   {user?.email}
                 </p>
               </div>
 
+              {/* Address */}
               <div>
                 <label
                   htmlFor="address"
                   className="mb-2 block text-sm font-semibold text-[#071A33]"
                 >
                   Delivery Address
+                  <span className="ml-1 text-red-500">
+                    *
+                  </span>
                 </label>
 
                 <textarea
                   id="address"
                   rows={4}
+                  value={address}
+                  onChange={(event) =>
+                    setAddress(event.target.value)
+                  }
                   placeholder="Enter your delivery address"
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
                 />
               </div>
+
             </div>
           </div>
 
           {/* Order Summary */}
           <div className="rounded-2xl bg-white p-8 shadow-md">
+
             <h2 className="mb-6 text-2xl font-bold text-[#071A33]">
               Order Summary
             </h2>
 
             <div className="space-y-4">
+
               {cart.map((item) => (
                 <div
                   key={item.title}
@@ -171,13 +208,19 @@ export default function Checkout() {
                   </div>
 
                   <p className="font-semibold text-[#B8892D]">
-                    {(item.price * item.quantity).toLocaleString("fr-FR")} DZD
+                    {(item.price * item.quantity).toLocaleString(
+                      "fr-FR"
+                    )}{" "}
+                    DZD
                   </p>
                 </div>
               ))}
+
             </div>
 
+            {/* Total */}
             <div className="mt-6 border-t border-gray-200 pt-6">
+
               <div className="flex items-center justify-between">
                 <span className="text-lg font-semibold text-[#071A33]">
                   Total
@@ -187,18 +230,26 @@ export default function Checkout() {
                   {subtotal.toLocaleString("fr-FR")} DZD
                 </span>
               </div>
+
+              {/* Error */}
               {orderError && (
-                <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                <p className="mb-4 mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
                   {orderError}
                 </p>
               )}
+
+              {/* Place Order */}
               <button
                 type="button"
                 onClick={handlePlaceOrder}
-                className="mt-6 w-full rounded-full bg-[#071A33] px-6 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
+                disabled={isSubmitting}
+                className="mt-6 w-full rounded-full bg-[#071A33] px-6 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Creating Order..." : "Place Order"}
+                {isSubmitting
+                  ? "Creating Order..."
+                  : "Place Order"}
               </button>
+
             </div>
           </div>
 

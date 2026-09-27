@@ -1,13 +1,30 @@
+
 import { PutCommand } from "@aws-sdk/lib-dynamodb";
 import { dynamoDB } from "@/lib/dynamodb";
 
 export async function POST(request: Request) {
   try {
-    const { userEmail, items, total } = await request.json();
+    const {
+      userEmail,
+      items,
+      total,
+      address,
+    } = await request.json();
 
-    if (!userEmail || !items || items.length === 0 || total === undefined) {
+    // Validate order information
+    if (
+      !userEmail ||
+      !items ||
+      items.length === 0 ||
+      total === undefined ||
+      !address ||
+      !address.trim()
+    ) {
       return Response.json(
-        { error: "Missing order information." },
+        {
+          error:
+            "User email, items, total and delivery address are required.",
+        },
         { status: 400 }
       );
     }
@@ -17,6 +34,7 @@ export async function POST(request: Request) {
     const order = {
       orderId,
       userEmail: userEmail.trim().toLowerCase(),
+      address: address.trim(),
       items,
       total,
       status: "pending",
@@ -41,8 +59,12 @@ export async function POST(request: Request) {
     console.error("Create order error:", error);
 
     return Response.json(
-      { error: "Something went wrong while creating the order." },
+      {
+        error:
+          "Something went wrong while creating the order.",
+      },
       { status: 500 }
     );
   }
 }
+
