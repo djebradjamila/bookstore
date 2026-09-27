@@ -20,7 +20,7 @@ function OrderSuccessContent() {
         </h1>
 
         <p className="mt-4 text-lg text-gray-600">
-          Thank you for your order. Your order has been created successfully.
+          Thank you for your order. Your order has been sent successfully.
         </p>
 
         {orderId && (
@@ -30,16 +30,26 @@ function OrderSuccessContent() {
           </p>
         )}
 
-        <Link
-          href="/books"
-          className="mt-8 inline-block rounded-full bg-[#071A33] px-8 py-3 font-semibold text-white transition hover:bg-[#E8B04A]"
-        >
-          Continue Shopping
-        </Link>
+        <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+          <Link
+            href="/orders"
+            className="rounded-full bg-[#071A33] px-8 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
+          >
+            My Orders
+          </Link>
+
+          <Link
+            href="/books"
+            className="rounded-full border border-[#071A33] px-8 py-3 font-semibold text-[#071A33] transition hover:bg-[#071A33] hover:text-white"
+          >
+            Continue Shopping
+          </Link>
+        </div>
       </div>
     </main>
   );
 }
+
 export default function OrderSuccess() {
   return (
     <Suspense fallback={<div>Loading order...</div>}>

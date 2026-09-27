@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -18,10 +17,11 @@ export default function SignUp() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
- const handleSubmit = async (event: React.FormEvent) => {
-   event.preventDefault();
-   setError("");
-   setSuccess("");
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    setError("");
+    setSuccess("");
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -29,12 +29,16 @@ export default function SignUp() {
     }
 
     try {
-     const response = await fetch("/api/users", {
+      const response = await fetch("/api/users", {
         method: "POST",
         headers: {
-         "Content-Type": "application/json",
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name,email,password,}),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
       });
 
       const data = await response.json();
@@ -52,39 +56,38 @@ export default function SignUp() {
       setSuccess("Account created successfully!");
 
       router.push("/");
-    } 
-    catch (error) {
-     console.error("Sign up error:", error);
-     setError("Unable to connect to the server.");
+    } catch (error) {
+      console.error("Sign up error:", error);
+      setError("Unable to connect to the server.");
     }
   };
 
   return (
-    <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
+    <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
       <div className="mx-auto max-w-md">
 
         {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="mb-4 text-5xl">📖</div>
+        <div className="mb-5 text-center">
+          <div className="mb-2 text-4xl">📖</div>
 
-          <h1 className="text-4xl font-bold text-[#071A33]">
+          <h1 className="text-3xl font-bold text-[#071A33]">
             Create Account
           </h1>
 
-          <p className="mt-3 text-gray-600">
+          <p className="mt-2 text-sm text-gray-600">
             Join BookStore and discover your next great book
           </p>
         </div>
 
         {/* Form */}
-        <div className="rounded-2xl bg-white p-8 shadow-md">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-4">
 
             {/* Name */}
             <div>
               <label
                 htmlFor="name"
-                className="mb-2 block font-semibold text-[#071A33]"
+                className="mb-1.5 block text-sm font-semibold text-[#071A33]"
               >
                 Full Name
               </label>
@@ -96,7 +99,7 @@ export default function SignUp() {
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Enter your full name"
                 required
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
               />
             </div>
 
@@ -104,7 +107,7 @@ export default function SignUp() {
             <div>
               <label
                 htmlFor="email"
-                className="mb-2 block font-semibold text-[#071A33]"
+                className="mb-1.5 block text-sm font-semibold text-[#071A33]"
               >
                 Email
               </label>
@@ -116,7 +119,7 @@ export default function SignUp() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="Enter your email"
                 required
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
               />
             </div>
 
@@ -124,7 +127,7 @@ export default function SignUp() {
             <div>
               <label
                 htmlFor="password"
-                className="mb-2 block font-semibold text-[#071A33]"
+                className="mb-1.5 block text-sm font-semibold text-[#071A33]"
               >
                 Password
               </label>
@@ -138,7 +141,7 @@ export default function SignUp() {
                   placeholder="Create a password"
                   required
                   minLength={6}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
                 />
 
                 <button
@@ -155,7 +158,7 @@ export default function SignUp() {
             <div>
               <label
                 htmlFor="confirmPassword"
-                className="mb-2 block font-semibold text-[#071A33]"
+                className="mb-1.5 block text-sm font-semibold text-[#071A33]"
               >
                 Confirm Password
               </label>
@@ -168,20 +171,20 @@ export default function SignUp() {
                 placeholder="Confirm your password"
                 required
                 minLength={6}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
               />
             </div>
 
             {/* Error */}
             {error && (
-              <p className="rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+              <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600">
                 {error}
               </p>
             )}
 
             {/* Success */}
             {success && (
-              <p className="rounded-xl bg-green-50 px-4 py-3 text-sm font-medium text-green-600">
+              <p className="rounded-xl bg-green-50 px-4 py-2.5 text-sm font-medium text-green-600">
                 {success}
               </p>
             )}
@@ -189,14 +192,14 @@ export default function SignUp() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full rounded-full bg-[#E8B04A] px-6 py-3 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
+              className="w-full rounded-full bg-[#E8B04A] px-6 py-3 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
             >
               Create Account
             </button>
           </form>
 
           {/* Sign In */}
-          <p className="mt-6 text-center text-gray-600">
+          <p className="mt-5 text-center text-sm text-gray-600">
             Already have an account?{" "}
             <Link
               href="/signin"

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -29,21 +28,21 @@ export default function Checkout() {
 
   if (cart.length === 0) {
     return (
-      <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
+      <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="text-6xl">🛒</div>
+          <div className="text-5xl">🛒</div>
 
-          <h1 className="mt-6 text-3xl font-bold text-[#071A33]">
+          <h1 className="mt-4 text-3xl font-bold text-[#071A33]">
             Your cart is empty
           </h1>
 
-          <p className="mt-3 text-gray-600">
+          <p className="mt-2 text-sm text-gray-600">
             Add some books before proceeding to checkout.
           </p>
 
           <Link
             href="/books"
-            className="mt-6 inline-block rounded-full bg-[#E8B04A] px-8 py-3 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
+            className="mt-5 inline-block rounded-full bg-[#E8B04A] px-7 py-2.5 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
           >
             Browse Books
           </Link>
@@ -58,7 +57,6 @@ export default function Checkout() {
       return;
     }
 
-    // Validate delivery address
     if (!address.trim()) {
       setOrderError("Please enter your delivery address.");
       return;
@@ -101,34 +99,35 @@ export default function Checkout() {
     } catch (error) {
       console.error("Create order error:", error);
 
-      setOrderError(
-        "Unable to connect to the server."
-      );
-
+      setOrderError("Unable to connect to the server.");
       setIsSubmitting(false);
     }
   };
 
   return (
-    <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
+    <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
       <div className="mx-auto max-w-5xl">
 
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-[#071A33]">
+        <div className="mb-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#B8892D]">
+            BookStore
+          </p>
+
+          <h1 className="mt-1 text-3xl font-bold text-[#071A33] md:text-4xl">
             Checkout
           </h1>
 
-          <p className="mt-2 text-gray-600">
+          <p className="mt-1 text-sm text-gray-600">
             Complete your order
           </p>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
 
           {/* Customer Information */}
-          <div className="rounded-2xl bg-white p-8 shadow-md">
-            <h2 className="mb-6 text-2xl font-bold text-[#071A33]">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <h2 className="mb-5 text-xl font-bold text-[#071A33]">
               Customer Information
             </h2>
 
@@ -136,22 +135,22 @@ export default function Checkout() {
 
               {/* Full Name */}
               <div>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-500">
                   Full Name
                 </p>
 
-                <p className="font-semibold text-[#071A33]">
+                <p className="mt-1 text-sm font-semibold text-[#071A33]">
                   {user?.name}
                 </p>
               </div>
 
               {/* Email */}
               <div>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-500">
                   Email
                 </p>
 
-                <p className="font-semibold text-[#071A33]">
+                <p className="mt-1 text-sm font-semibold text-[#071A33]">
                   {user?.email}
                 </p>
               </div>
@@ -160,54 +159,49 @@ export default function Checkout() {
               <div>
                 <label
                   htmlFor="address"
-                  className="mb-2 block text-sm font-semibold text-[#071A33]"
+                  className="mb-1.5 block text-sm font-semibold text-[#071A33]"
                 >
                   Delivery Address
-                  <span className="ml-1 text-red-500">
-                    *
-                  </span>
+                  <span className="ml-1 text-red-500">*</span>
                 </label>
 
                 <textarea
                   id="address"
-                  rows={4}
+                  rows={3}
                   value={address}
                   onChange={(event) =>
                     setAddress(event.target.value)
                   }
                   placeholder="Enter your delivery address"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                  className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
                 />
               </div>
-
             </div>
           </div>
 
           {/* Order Summary */}
-          <div className="rounded-2xl bg-white p-8 shadow-md">
-
-            <h2 className="mb-6 text-2xl font-bold text-[#071A33]">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <h2 className="mb-5 text-xl font-bold text-[#071A33]">
               Order Summary
             </h2>
 
-            <div className="space-y-4">
-
+            <div className="space-y-3">
               {cart.map((item) => (
                 <div
                   key={item.title}
-                  className="flex items-center justify-between border-b border-gray-100 pb-4"
+                  className="flex items-center justify-between border-b border-gray-100 pb-3"
                 >
-                  <div>
-                    <p className="font-semibold text-[#071A33]">
+                  <div className="min-w-0 pr-4">
+                    <p className="truncate text-sm font-semibold text-[#071A33]">
                       {item.title}
                     </p>
 
-                    <p className="text-sm text-gray-500">
+                    <p className="mt-1 text-xs text-gray-500">
                       Quantity: {item.quantity}
                     </p>
                   </div>
 
-                  <p className="font-semibold text-[#B8892D]">
+                  <p className="shrink-0 text-sm font-semibold text-[#B8892D]">
                     {(item.price * item.quantity).toLocaleString(
                       "fr-FR"
                     )}{" "}
@@ -215,25 +209,23 @@ export default function Checkout() {
                   </p>
                 </div>
               ))}
-
             </div>
 
             {/* Total */}
-            <div className="mt-6 border-t border-gray-200 pt-6">
-
+            <div className="mt-5 border-t border-gray-200 pt-5">
               <div className="flex items-center justify-between">
-                <span className="text-lg font-semibold text-[#071A33]">
+                <span className="text-base font-semibold text-[#071A33]">
                   Total
                 </span>
 
-                <span className="text-2xl font-extrabold text-[#B8892D]">
+                <span className="text-xl font-extrabold text-[#B8892D]">
                   {subtotal.toLocaleString("fr-FR")} DZD
                 </span>
               </div>
 
               {/* Error */}
               {orderError && (
-                <p className="mb-4 mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-medium text-red-600">
+                <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600">
                   {orderError}
                 </p>
               )}
@@ -243,13 +235,12 @@ export default function Checkout() {
                 type="button"
                 onClick={handlePlaceOrder}
                 disabled={isSubmitting}
-                className="mt-6 w-full rounded-full bg-[#071A33] px-6 py-3 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33] disabled:cursor-not-allowed disabled:opacity-60"
+                className="mt-5 w-full rounded-full bg-[#071A33] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting
                   ? "Creating Order..."
                   : "Place Order"}
               </button>
-
             </div>
           </div>
 
@@ -258,4 +249,3 @@ export default function Checkout() {
     </main>
   );
 }
-

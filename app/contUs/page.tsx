@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -54,167 +53,194 @@ export default function Contact() {
   };
 
   return (
-    <main className="min-h-screen bg-[#F8F4EC]">
-      {/* Header */}
-      <section className="px-6 py-20 text-center">
-        <p className="font-semibold uppercase tracking-[0.2em] text-[#B8892D]">
-          Get in Touch
-        </p>
+    <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
+      <div className="mx-auto max-w-6xl">
 
-        <h1 className="mt-3 text-5xl font-bold text-[#071A33]">
-          Contact Us
-        </h1>
+        {/* Header */}
+        <section className="mb-8 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#B8892D]">
+            Get in Touch
+          </p>
 
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-gray-600">
-          Have a question, suggestion, or need help?
-          We would love to hear from you.
-        </p>
-      </section>
+          <h1 className="mt-2 text-3xl font-bold text-[#071A33] md:text-4xl">
+            Contact Us
+          </h1>
 
-      {/* Contact Content */}
-      <section className="mx-auto max-w-6xl px-6 pb-20">
-        <div className="grid gap-10 md:grid-cols-2">
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">
+            Have a question, suggestion, or need help?
+            We would love to hear from you.
+          </p>
+        </section>
 
-          {/* Information */}
-          <div className="rounded-3xl bg-[#071A33] p-8 text-white shadow-xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E8B04A]">
-              BookStore
-            </p>
+        {/* Contact Content */}
+        <section className="pb-8">
+          <div className="grid gap-6 md:grid-cols-2">
 
-            <h2 className="mt-4 text-3xl font-bold">
-              We'd love to hear from you.
-            </h2>
+            {/* Information */}
+            <div className="rounded-2xl bg-[#071A33] p-6 text-white shadow-md">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#E8B04A]">
+                BookStore
+              </p>
 
-            <p className="mt-5 leading-8 text-white/70">
-              Whether you have a question about our books, need assistance,
-              or simply want to share your feedback, feel free to contact us.
-            </p>
+              <h2 className="mt-3 text-2xl font-bold">
+                We'd love to hear from you.
+              </h2>
 
-            <div className="mt-10 space-y-6">
-              <div>
-                <p className="text-sm text-white/50">Email</p>
-                <p className="mt-1 font-medium">
-                  contact@bookstore.com
-                </p>
-              </div>
+              <p className="mt-3 text-sm leading-6 text-white/70">
+                Whether you have a question about our books,
+                need assistance, or want to share your feedback,
+                feel free to contact us.
+              </p>
 
-              <div>
-                <p className="text-sm text-white/50">Phone</p>
-                <p className="mt-1 font-medium">
-                  +213 555 000 000
-                </p>
-              </div>
+              <div className="mt-7 space-y-4">
+                <div>
+                  <p className="text-xs text-white/50">Email</p>
+                  <p className="mt-1 text-sm font-medium">
+                    contact@bookstore.com
+                  </p>
+                </div>
 
-              <div>
-                <p className="text-sm text-white/50">Location</p>
-                <p className="mt-1 font-medium">
-                  Algeria
-                </p>
+                <div>
+                  <p className="text-xs text-white/50">Phone</p>
+                  <p className="mt-1 text-sm font-medium">
+                    +213 555 000 000
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs text-white/50">Location</p>
+                  <p className="mt-1 text-sm font-medium">
+                    Algeria
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Form */}
-          <div className="rounded-3xl bg-white p-8 shadow-lg">
-            {submitted ? (
-              <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
-                <div className="text-5xl text-green-600">✓</div>
+            {/* Form */}
+            <div className="rounded-2xl bg-white p-6 shadow-md">
+              {submitted ? (
+                <div className="flex min-h-[360px] flex-col items-center justify-center text-center">
+                  <div className="text-5xl text-green-600">
+                    ✓
+                  </div>
 
-                <h2 className="mt-5 text-2xl font-bold text-[#071A33]">
-                  Message Sent!
-                </h2>
+                  <h2 className="mt-4 text-2xl font-bold text-[#071A33]">
+                    Message Sent!
+                  </h2>
 
-                <p className="mt-3 text-gray-500">
-                  Thank you for contacting BookStore.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => setSubmitted(false)}
-                  className="mt-6 rounded-full bg-[#E8B04A] px-6 py-3 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
-                >
-                  Send Another Message
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-5">
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#071A33]">
-                    Full Name
-                  </label>
-
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    placeholder="Your name"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#071A33]">
-                    Email
-                  </label>
-
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    placeholder="your@email.com"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#071A33]">
-                    Subject
-                  </label>
-
-                  <input
-                    type="text"
-                    name="subject"
-                    required
-                    placeholder="How can we help?"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A]"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#071A33]">
-                    Message
-                  </label>
-
-                  <textarea
-                    name="message"
-                    required
-                    rows={5}
-                    placeholder="Write your message..."
-                    className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A]"
-                  />
-                </div>
-
-                {error && (
-                  <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
-                    {error}
+                  <p className="mt-2 text-sm text-gray-500">
+                    Thank you for contacting BookStore.
                   </p>
-                )}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-full bg-[#071A33] px-6 py-4 font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {loading ? "Sending..." : "Send Message →"}
-                </button>
-              </form>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => setSubmitted(false)}
+                    className="mt-5 rounded-full bg-[#E8B04A] px-6 py-2.5 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
+                  >
+                    Send Another Message
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
+
+                  {/* Name */}
+                  <div>
+                    <label
+                      htmlFor="name"
+                      className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                    >
+                      Full Name
+                    </label>
+
+                    <input
+                      id="name"
+                      type="text"
+                      name="name"
+                      required
+                      placeholder="Your name"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label
+                      htmlFor="email"
+                      className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                    >
+                      Email
+                    </label>
+
+                    <input
+                      id="email"
+                      type="email"
+                      name="email"
+                      required
+                      placeholder="your@email.com"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                    />
+                  </div>
+
+                  {/* Subject */}
+                  <div>
+                    <label
+                      htmlFor="subject"
+                      className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                    >
+                      Subject
+                    </label>
+
+                    <input
+                      id="subject"
+                      type="text"
+                      name="subject"
+                      required
+                      placeholder="How can we help?"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                    />
+                  </div>
+
+                  {/* Message */}
+                  <div>
+                    <label
+                      htmlFor="message"
+                      className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                    >
+                      Message
+                    </label>
+
+                    <textarea
+                      id="message"
+                      name="message"
+                      required
+                      rows={4}
+                      placeholder="Write your message..."
+                      className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                    />
+                  </div>
+
+                  {/* Error */}
+                  {error && (
+                    <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-red-600">
+                      {error}
+                    </p>
+                  )}
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full rounded-full bg-[#071A33] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {loading ? "Sending..." : "Send Message →"}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
+        </section>
 
-        </div>
-      </section>
+      </div>
     </main>
   );
 }
-

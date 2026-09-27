@@ -14,6 +14,15 @@ type Book = {
   image: string;
 };
 
+const categories = [
+  "All Categories",
+  "Novels",
+  "Computer Science",
+  "Mathematics",
+  "Science",
+  "History",
+];
+
 function BooksContent() {
   const searchParams = useSearchParams();
 
@@ -25,25 +34,33 @@ function BooksContent() {
   const [error, setError] = useState("");
 
   const [search, setSearch] = useState(searchFromUrl);
-  const [category, setCategory] = useState("All Categories");
+  const [category, setCategory] = useState(
+    categoryFromUrl || "All Categories"
+  );
   const [sort, setSort] = useState("Sort by");
 
   const { wishlist, toggleWishlist, isWishlisted } = useWishlist();
   const { addToCart } = useCart();
 
+  useEffect(() => {
+    setCategory(categoryFromUrl || "All Categories");
+    setSearch(searchFromUrl);
+  }, [categoryFromUrl, searchFromUrl]);
+
   // Fetch books from DynamoDB through our API
   useEffect(() => {
-    
     const fetchBooks = async () => {
       try {
-       
-        const response = await fetch(`${window.location.origin}/api/books`);
-        
+        const response = await fetch(
+          `${window.location.origin}/api/books`
+        );
+
         const data = await response.json();
 
         if (!response.ok || !data.success) {
           throw new Error(data.message || "Failed to fetch books");
         }
+
         const formattedBooks: Book[] = data.books.map((book: any) => ({
           id: book.id?.S || book.id || "",
           title: book.title?.S || book.title || "",
@@ -65,9 +82,7 @@ function BooksContent() {
     fetchBooks();
   }, []);
 
-  // Search + Category
-  const activeCategory = categoryFromUrl || category;
-
+  // Filter books by search and category
   const filteredBooks = books
     .filter((book) => {
       const matchesSearch = `${book.title} ${book.author}`
@@ -75,13 +90,13 @@ function BooksContent() {
         .includes(search.toLowerCase());
 
       const matchesCategory =
-        activeCategory === "All Categories" ||
-        book.category === activeCategory;
+        category === "All Categories" ||
+        book.category.toLowerCase() === category.toLowerCase();
 
       return matchesSearch && matchesCategory;
     })
 
-    // Sort
+    // Sort books
     .sort((a, b) => {
       if (sort === "Price: Low to High") {
         return a.price - b.price;
@@ -94,31 +109,43 @@ function BooksContent() {
       return 0;
     });
 
+  const pageTitle =
+    category === "All Categories" ? "All Books" : category;
+
+  const pageDescription =
+    category === "All Categories"
+      ? "Explore our collection and discover your next favorite book."
+      : `Discover our ${category.toLowerCase()} books.`;
+
   return (
     <main className="min-h-screen bg-[#F8F4EC]">
 
-      {/* Page Header */}
-      <section className="bg-[#F8F4EC] px-6 py-16">
-        <div className="text-center">
-          <p className="font-semibold uppercase tracking-[0.25em] text-[#B8892D]">
-            Our Collection
+      {/* Compact Page Header */}
+      <section className="px-6 py-8">
+        <div className="mx-auto max-w-4xl text-center">
+
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#B8892D]">
+            {category === "All Categories"
+              ? "Our Collection"
+              : "Book Category"}
           </p>
 
-          <h1 className="mt-3 text-5xl font-bold text-[#071A33]">
-            All Books
+          <h1 className="mt-1 text-3xl font-bold text-[#071A33] md:text-4xl">
+            {pageTitle}
           </h1>
 
-          <p className="text-center">
-            Explore our collection and discover your next favorite book.
+          <p className="mx-auto mt-2 max-w-xl text-sm text-gray-600">
+            {pageDescription}
           </p>
+
         </div>
       </section>
 
       {/* Content */}
-      <section className="mx-auto max-w-7xl px-6 py-6">
+      <section className="mx-auto max-w-7xl px-6 pb-10">
 
         {/* Search and Filters */}
-        <div className="mb-12 -mt-2 rounded-2xl bg-white p-4 shadow-md ring-1 ring-gray-100">
+        <div className="mb-8 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-gray-100">
           <div className="flex flex-col gap-3 lg:flex-row">
 
             {/* Search */}
@@ -130,31 +157,30 @@ function BooksContent() {
               <input
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search books or authors..."
-                className="w-full rounded-xl border border-gray-200 bg-[#F8F4EC] py-3.5 pl-12 pr-4 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                className="w-full rounded-xl border border-gray-200 bg-[#F8F4EC] py-3 pl-12 pr-4 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
               />
             </div>
 
             {/* Category */}
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-[#F8F4EC] px-5 py-3.5 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+              onChange={(event) => setCategory(event.target.value)}
+              className="rounded-xl border border-gray-200 bg-[#F8F4EC] px-5 py-3 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
             >
-              <option>All Categories</option>
-              <option>Novels</option>
-              <option>Computer Science</option>
-              <option>Mathematics</option>
-              <option>Science</option>
-              <option>History</option>
+              {categories.map((categoryOption) => (
+                <option key={categoryOption}>
+                  {categoryOption}
+                </option>
+              ))}
             </select>
 
             {/* Sort */}
             <select
               value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className="rounded-xl border border-gray-200 bg-[#F8F4EC] px-5 py-3.5 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+              onChange={(event) => setSort(event.target.value)}
+              className="rounded-xl border border-gray-200 bg-[#F8F4EC] px-5 py-3 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
             >
               <option>Sort by</option>
               <option>Price: Low to High</option>
@@ -167,9 +193,10 @@ function BooksContent() {
 
         {/* Loading */}
         {loading && (
-          <div className="py-20 text-center">
+          <div className="py-16 text-center">
             <div className="text-4xl">📚</div>
-            <p className="mt-4 text-gray-500">
+
+            <p className="mt-3 text-gray-500">
               Loading books...
             </p>
           </div>
@@ -177,7 +204,7 @@ function BooksContent() {
 
         {/* Error */}
         {!loading && error && (
-          <div className="rounded-3xl bg-white py-20 text-center shadow-sm">
+          <div className="rounded-3xl bg-white py-16 text-center shadow-sm">
             <div className="text-5xl">⚠️</div>
 
             <h2 className="mt-5 text-2xl font-bold text-[#071A33]">
@@ -194,17 +221,27 @@ function BooksContent() {
         {!loading && !error && (
           <>
             {/* Results count */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
               <p className="text-sm text-gray-500">
                 Showing{" "}
                 <span className="font-semibold text-[#071A33]">
                   {filteredBooks.length}
                 </span>{" "}
                 {filteredBooks.length === 1 ? "book" : "books"}
+
+                {category !== "All Categories" && (
+                  <>
+                    {" "}in{" "}
+                    <span className="font-semibold text-[#071A33]">
+                      {category}
+                    </span>
+                  </>
+                )}
               </p>
 
               <div className="flex items-center gap-4">
-                {/* Wishlist count */}
+
                 <p className="text-sm font-medium text-gray-500">
                   Wishlist{" "}
                   <span className="font-bold text-[#B8892D]">
@@ -216,6 +253,7 @@ function BooksContent() {
                   category !== "All Categories" ||
                   sort !== "Sort by") && (
                   <button
+                    type="button"
                     onClick={() => {
                       setSearch("");
                       setCategory("All Categories");
@@ -226,6 +264,7 @@ function BooksContent() {
                     Clear filters
                   </button>
                 )}
+
               </div>
             </div>
 
@@ -248,7 +287,6 @@ function BooksContent() {
                         className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-110"
                       />
 
-                      {/* Image overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-[#071A33]/20 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
 
                       {/* Wishlist */}
@@ -281,17 +319,14 @@ function BooksContent() {
                     {/* Information */}
                     <div className="p-6">
 
-                      {/* Category */}
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#B8892D]">
                         {book.category}
                       </p>
 
-                      {/* Title */}
                       <h2 className="mt-2 line-clamp-1 text-2xl font-bold text-[#071A33] transition-colors duration-300 group-hover:text-[#B8892D]">
                         {book.title}
                       </h2>
 
-                      {/* Author */}
                       <p className="mt-2 text-sm text-gray-500">
                         by{" "}
                         <span className="font-medium text-gray-700">
@@ -310,13 +345,11 @@ function BooksContent() {
                         </span>
                       </div>
 
-                      {/* Divider */}
                       <div className="my-5 h-px bg-gray-100" />
 
                       {/* Price + Buttons */}
                       <div className="flex flex-col gap-4">
 
-                        {/* Price */}
                         <div>
                           <p className="text-xs uppercase tracking-wider text-gray-400">
                             Price
@@ -324,13 +357,13 @@ function BooksContent() {
 
                           <p className="mt-1 text-2xl font-extrabold text-[#071A33]">
                             {book.price.toLocaleString("fr-FR")}
+
                             <span className="ml-1 text-sm font-semibold text-[#B8892D]">
                               DZD
                             </span>
                           </p>
                         </div>
 
-                        {/* Buttons */}
                         <div className="flex flex-col gap-2 sm:flex-row">
 
                           {/* Add to Cart */}
@@ -351,7 +384,9 @@ function BooksContent() {
 
                           {/* View Book */}
                           <a
-                            href={`/book?title=${encodeURIComponent(book.title)}`}
+                            href={`/book?title=${encodeURIComponent(
+                              book.title
+                            )}`}
                             className="group/button inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#071A33] px-4 py-3 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#E8B04A] hover:text-[#071A33] hover:shadow-lg"
                           >
                             View Book
@@ -371,7 +406,8 @@ function BooksContent() {
             ) : (
 
               /* No Results */
-              <div className="rounded-3xl bg-white py-20 text-center shadow-sm">
+              <div className="rounded-3xl bg-white py-16 text-center shadow-sm">
+
                 <div className="text-5xl">📚</div>
 
                 <h2 className="mt-5 text-2xl font-bold text-[#071A33]">
@@ -379,10 +415,11 @@ function BooksContent() {
                 </h2>
 
                 <p className="mt-2 text-gray-500">
-                  Try changing your search or filters.
+                  No books match your current search and category.
                 </p>
 
                 <button
+                  type="button"
                   onClick={() => {
                     setSearch("");
                     setCategory("All Categories");
@@ -392,9 +429,10 @@ function BooksContent() {
                 >
                   Reset Filters
                 </button>
-              </div>
 
+              </div>
             )}
+
           </>
         )}
 
@@ -402,6 +440,7 @@ function BooksContent() {
     </main>
   );
 }
+
 export default function Books() {
   return (
     <Suspense fallback={<div>Loading books...</div>}>

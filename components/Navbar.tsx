@@ -110,6 +110,16 @@ export default function Navbar() {
                 Categories
               </Link>
 
+              {/* My Orders */}
+              {isAuthenticated && (
+                <Link
+                  href="/orders"
+                  className="transition hover:text-[#E8B04A]"
+                >
+                  My Orders
+                </Link>
+              )}
+
               <Link
                 href="/contUs"
                 className="transition hover:text-[#E8B04A]"
@@ -258,6 +268,17 @@ export default function Navbar() {
                 >
                   Categories
                 </Link>
+
+                {/* My Orders */}
+                {isAuthenticated && (
+                  <Link
+                    href="/orders"
+                    onClick={closeMobileMenu}
+                    className="hover:text-[#E8B04A]"
+                  >
+                    📦 My Orders
+                  </Link>
+                )}
 
                 <Link
                   href="/contUs"
