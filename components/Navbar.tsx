@@ -25,9 +25,7 @@ export default function Navbar() {
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!search.trim()) {
-      return;
-    }
+    if (!search.trim()) return;
 
     router.push(
       `/books?search=${encodeURIComponent(search.trim())}`
@@ -36,14 +34,12 @@ export default function Navbar() {
     setSearchOpen(false);
   };
 
-  // Desktop logout
   const handleLogout = () => {
     logout();
     localStorage.removeItem("wishlist");
     router.push("/");
   };
 
-  // Close mobile menu after clicking a link
   const closeMobileMenu = (
     event: React.MouseEvent<HTMLAnchorElement>
   ) => {
@@ -54,7 +50,6 @@ export default function Navbar() {
     }
   };
 
-  // Mobile logout + close menu
   const handleMobileLogout = (
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
@@ -85,10 +80,11 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop navigation */}
+        {/* Desktop Navigation */}
         <div className="hidden flex-1 items-center justify-center md:flex">
           {!searchOpen ? (
             <div className="flex items-center gap-6 lg:gap-7">
+
               <Link
                 href="/"
                 className="transition hover:text-[#E8B04A]"
@@ -110,7 +106,6 @@ export default function Navbar() {
                 Categories
               </Link>
 
-              {/* My Orders */}
               {isAuthenticated && (
                 <Link
                   href="/orders"
@@ -126,6 +121,7 @@ export default function Navbar() {
               >
                 Contact
               </Link>
+
             </div>
           ) : (
             <form
@@ -135,9 +131,7 @@ export default function Navbar() {
               <input
                 type="text"
                 value={search}
-                onChange={(event) =>
-                  setSearch(event.target.value)
-                }
+                onChange={(event) => setSearch(event.target.value)}
                 placeholder="Search books or authors..."
                 autoFocus
                 className="flex-1 px-5 py-2.5 text-[#071A33] outline-none"
@@ -153,8 +147,10 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Desktop actions */}
+        {/* Desktop Actions */}
         <div className="hidden shrink-0 items-center gap-4 md:flex">
+
+          {/* Search */}
           <button
             type="button"
             onClick={() => setSearchOpen(!searchOpen)}
@@ -163,6 +159,7 @@ export default function Navbar() {
             {searchOpen ? "✕" : "🔍"}
           </button>
 
+          {/* Wishlist */}
           <Link
             href="/wishlist"
             className="text-lg transition hover:text-[#E8B04A]"
@@ -170,6 +167,7 @@ export default function Navbar() {
             ♡ {wishlist.length}
           </Link>
 
+          {/* Cart */}
           <Link
             href="/cart"
             className="text-lg transition hover:text-[#E8B04A]"
@@ -177,12 +175,19 @@ export default function Navbar() {
             🛒 {cartCount}
           </Link>
 
+          {/* Authentication */}
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
-              <span className="max-w-[150px] truncate font-semibold">
-                👤 {user?.name}
-              </span>
 
+              {/* Profile */}
+              <Link
+                href="/profile"
+                className="max-w-[150px] truncate font-semibold transition hover:text-[#E8B04A]"
+              >
+                👤 {user?.name}
+              </Link>
+
+              {/* Sign Out */}
               <button
                 type="button"
                 onClick={handleLogout}
@@ -190,6 +195,7 @@ export default function Navbar() {
               >
                 Sign Out
               </button>
+
             </div>
           ) : (
             <Link
@@ -201,25 +207,35 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile actions */}
+        {/* Mobile Actions */}
         <div className="flex items-center gap-3 md:hidden">
-          <Link href="/wishlist" className="text-lg">
+
+          {/* Wishlist */}
+          <Link
+            href="/wishlist"
+            className="text-lg"
+          >
             ♡ {wishlist.length}
           </Link>
 
-          <Link href="/cart" className="text-lg">
+          {/* Cart */}
+          <Link
+            href="/cart"
+            className="text-lg"
+          >
             🛒 {cartCount}
           </Link>
 
-          {/* Mobile menu */}
+          {/* Mobile Menu */}
           <details className="relative">
+
             <summary className="list-none cursor-pointer p-2 text-2xl">
               ☰
             </summary>
 
             <div className="absolute right-0 top-12 z-[100] w-64 rounded-xl bg-[#071A33] p-5 shadow-2xl">
 
-              {/* Mobile search */}
+              {/* Mobile Search */}
               <form
                 onSubmit={handleSearch}
                 className="mb-5 flex overflow-hidden rounded-full bg-white"
@@ -227,9 +243,7 @@ export default function Navbar() {
                 <input
                   type="text"
                   value={search}
-                  onChange={(event) =>
-                    setSearch(event.target.value)
-                  }
+                  onChange={(event) => setSearch(event.target.value)}
                   placeholder="Search books..."
                   className="min-w-0 flex-1 px-4 py-2 text-[#071A33] outline-none"
                 />
@@ -242,7 +256,7 @@ export default function Navbar() {
                 </button>
               </form>
 
-              {/* Mobile links */}
+              {/* Mobile Navigation */}
               <div className="flex flex-col gap-4">
 
                 <Link
@@ -269,7 +283,6 @@ export default function Navbar() {
                   Categories
                 </Link>
 
-                {/* My Orders */}
                 {isAuthenticated && (
                   <Link
                     href="/orders"
@@ -277,6 +290,17 @@ export default function Navbar() {
                     className="hover:text-[#E8B04A]"
                   >
                     📦 My Orders
+                  </Link>
+                )}
+
+                {/* Mobile Profile */}
+                {isAuthenticated && (
+                  <Link
+                    href="/profile"
+                    onClick={closeMobileMenu}
+                    className="hover:text-[#E8B04A]"
+                  >
+                    👤 My Profile
                   </Link>
                 )}
 
@@ -304,14 +328,19 @@ export default function Navbar() {
                   🛒 Cart ({cartCount})
                 </Link>
 
-                {/* Authentication */}
+                {/* User Section */}
                 <div className="border-t border-white/10 pt-4">
+
                   {isAuthenticated ? (
                     <div className="flex flex-col gap-3">
 
-                      <span className="font-semibold">
+                      <Link
+                        href="/profile"
+                        onClick={closeMobileMenu}
+                        className="font-semibold hover:text-[#E8B04A]"
+                      >
                         👤 {user?.name}
-                      </span>
+                      </Link>
 
                       <button
                         type="button"
@@ -331,8 +360,8 @@ export default function Navbar() {
                       Sign In
                     </Link>
                   )}
-                </div>
 
+                </div>
               </div>
             </div>
           </details>
