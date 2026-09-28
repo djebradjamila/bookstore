@@ -23,6 +23,7 @@ function BookDetailsContent() {
   const { addToCart } = useCart();
 
   const [book, setBook] = useState<Book | null>(null);
+  const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -69,6 +70,18 @@ function BookDetailsContent() {
         }
 
         setBook(selectedBook);
+
+        // Find books from the same category
+        // and exclude the current book
+        const similarBooks = formattedBooks
+          .filter(
+            (item) =>
+              item.category === selectedBook.category &&
+              item.title !== selectedBook.title
+          )
+          .slice(0, 3);
+
+        setRelatedBooks(similarBooks);
       } catch (err) {
         console.error(err);
         setError("Unable to load the book.");
@@ -122,6 +135,7 @@ function BookDetailsContent() {
 
   return (
     <main className="min-h-screen bg-[#F8F4EC] p-6 sm:p-10">
+      {/* Book Details */}
       <div className="mx-auto max-w-5xl rounded-2xl bg-white p-6 shadow-md sm:p-8">
         <div className="grid gap-8 md:grid-cols-2">
 
@@ -200,6 +214,81 @@ function BookDetailsContent() {
           </div>
         </div>
       </div>
+
+      {/* Related Books */}
+      {relatedBooks.length > 0 && (
+        <section className="mx-auto mt-12 max-w-5xl">
+          <div className="mb-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#B8892D]">
+              More to Explore
+            </p>
+
+            <h2 className="mt-2 text-2xl font-bold text-[#071A33] sm:text-3xl">
+              You May Also Like
+            </h2>
+
+            <p className="mt-2 text-gray-500">
+              Discover more books from the same category.
+            </p>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {relatedBooks.map((relatedBook) => (
+              <div
+                key={relatedBook.id || relatedBook.title}
+                className="overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
+              >
+                {/* Image */}
+                <div className="h-64 overflow-hidden bg-[#EEE8DC]">
+                  <img
+                    src={relatedBook.image}
+                    alt={relatedBook.title}
+                    className="h-full w-full object-cover transition duration-500 hover:scale-105"
+                  />
+                </div>
+
+                {/* Information */}
+                <div className="p-5">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#B8892D]">
+                    {relatedBook.category}
+                  </p>
+
+                  <h3 className="mt-2 line-clamp-2 text-lg font-bold text-[#071A33]">
+                    {relatedBook.title}
+                  </h3>
+
+                  <p className="mt-2 text-sm text-gray-500">
+                    By {relatedBook.author}
+                  </p>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <p className="font-bold text-[#071A33]">
+                      {relatedBook.price.toLocaleString("fr-FR")}
+                      <span className="ml-1 text-xs text-[#B8892D]">
+                        DZD
+                      </span>
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        router.push(
+                          `/book?title=${encodeURIComponent(
+                            relatedBook.title
+                          )}`
+                        )
+                      }
+                      className="rounded-full bg-[#071A33] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
+                    >
+                      View Book
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   );
 }
