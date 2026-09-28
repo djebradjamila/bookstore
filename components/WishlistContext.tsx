@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -30,6 +31,7 @@ export function WishlistProvider({
   const previousUserEmail = useRef<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Load wishlist and detect login/logout
   useEffect(() => {
     const loadWishlist = async () => {
       const storedUser = localStorage.getItem("currentUser");
@@ -45,16 +47,17 @@ export function WishlistProvider({
         }
       }
 
-      if (email === previousUserEmail.current) {
+      // No user change
+      if (email === previousUserEmail.current && isLoaded) {
         return;
       }
 
       const oldEmail = previousUserEmail.current;
       previousUserEmail.current = email;
 
-      // =========================
+      // =====================================================
       // LOGOUT
-      // =========================
+      // =====================================================
       if (oldEmail && !email) {
         setCurrentUserEmail(null);
         setWishlist([]);
@@ -63,10 +66,27 @@ export function WishlistProvider({
         return;
       }
 
-      // =========================
+      // =====================================================
       // VISITOR
-      // =========================
+      // =====================================================
       if (!email) {
+        const navigationEntry = performance.getEntriesByType(
+          "navigation"
+        )[0] as PerformanceNavigationTiming | undefined;
+
+        const isPageRefresh =
+          navigationEntry?.type === "reload";
+
+        // Visitor + refresh = clear wishlist
+        if (isPageRefresh) {
+          localStorage.removeItem("wishlist");
+          setWishlist([]);
+          setCurrentUserEmail(null);
+          setIsLoaded(true);
+          return;
+        }
+
+        // Visitor without refresh = restore temporary wishlist
         const storedWishlist = localStorage.getItem("wishlist");
 
         let visitorWishlist: string[] = [];
@@ -89,10 +109,11 @@ export function WishlistProvider({
         return;
       }
 
-      // =========================
+      // =====================================================
       // LOGIN
-      // =========================
+      // =====================================================
 
+      // Keep the visitor wishlist before login.
       let visitorWishlist: string[] = [];
 
       const storedWishlist = localStorage.getItem("wishlist");
@@ -112,7 +133,7 @@ export function WishlistProvider({
       setCurrentUserEmail(email);
 
       try {
-        // Load account wishlist from DynamoDB
+        // Load wishlist belonging to the connected account
         const response = await fetch(
           `/api/wishlist?userEmail=${encodeURIComponent(email)}`
         );
@@ -120,7 +141,9 @@ export function WishlistProvider({
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.error || "Unable to load wishlist.");
+          throw new Error(
+            data.error || "Unable to load wishlist."
+          );
         }
 
         const databaseWishlist: string[] = data.wishlist.map(
@@ -129,10 +152,13 @@ export function WishlistProvider({
 
         // Merge visitor wishlist with account wishlist
         const mergedWishlist = Array.from(
-          new Set([...databaseWishlist, ...visitorWishlist])
+          new Set([
+            ...databaseWishlist,
+            ...visitorWishlist,
+          ])
         );
 
-        // Transfer visitor wishlist to DynamoDB
+        // Save visitor wishlist items to the account
         for (const bookTitle of visitorWishlist) {
           if (!databaseWishlist.includes(bookTitle)) {
             await fetch("/api/wishlist", {
@@ -148,17 +174,18 @@ export function WishlistProvider({
           }
         }
 
-        // Use the merged wishlist in the interface
         setWishlist(mergedWishlist);
 
-        // IMPORTANT:
-        // The visitor wishlist has now been transferred to DynamoDB.
-        // Remove the local copy.
+        // Visitor wishlist has now been transferred
         localStorage.removeItem("wishlist");
       } catch (error) {
-        console.error("Failed to load wishlist:", error);
+        console.error(
+          "Failed to load wishlist:",
+          error
+        );
 
-        // Keep visitor wishlist visible if the database request fails
+        // If the database request fails, keep the
+        // visitor wishlist temporarily.
         setWishlist(visitorWishlist);
 
         localStorage.setItem(
@@ -172,12 +199,17 @@ export function WishlistProvider({
 
     loadWishlist();
 
-    const interval = setInterval(loadWishlist, 500);
+    const interval = setInterval(
+      loadWishlist,
+      500
+    );
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isLoaded]);
 
-  // Save visitor wishlist locally
+  // =====================================================
+  // SAVE WISHLIST FOR VISITOR
+  // =====================================================
   useEffect(() => {
     if (!isLoaded || currentUserEmail) {
       return;
@@ -187,28 +219,41 @@ export function WishlistProvider({
       "wishlist",
       JSON.stringify(wishlist)
     );
-  }, [wishlist, currentUserEmail, isLoaded]);
+  }, [
+    wishlist,
+    currentUserEmail,
+    isLoaded,
+  ]);
 
-  const toggleWishlist = async (bookTitle: string) => {
-    const isCurrentlyWishlisted = wishlist.includes(bookTitle);
+  // =====================================================
+  // TOGGLE WISHLIST
+  // =====================================================
+  const toggleWishlist = async (
+    bookTitle: string
+  ) => {
+    const isCurrentlyWishlisted =
+      wishlist.includes(bookTitle);
 
-    const updatedWishlist = isCurrentlyWishlisted
-      ? wishlist.filter((title) => title !== bookTitle)
-      : [...wishlist, bookTitle];
+    const updatedWishlist =
+      isCurrentlyWishlisted
+        ? wishlist.filter(
+            (title) => title !== bookTitle
+          )
+        : [...wishlist, bookTitle];
 
-    // Update interface immediately
     setWishlist(updatedWishlist);
 
-    // Visitor → localStorage
+    // Visitor
     if (!currentUserEmail) {
       localStorage.setItem(
         "wishlist",
         JSON.stringify(updatedWishlist)
       );
+
       return;
     }
 
-    // Logged-in user → DynamoDB
+    // Connected user
     try {
       if (isCurrentlyWishlisted) {
         await fetch("/api/wishlist", {
@@ -234,11 +279,16 @@ export function WishlistProvider({
         });
       }
     } catch (error) {
-      console.error("Wishlist synchronization error:", error);
+      console.error(
+        "Wishlist synchronization error:",
+        error
+      );
     }
   };
 
-  const isWishlisted = (bookTitle: string) => {
+  const isWishlisted = (
+    bookTitle: string
+  ) => {
     return wishlist.includes(bookTitle);
   };
 
@@ -256,7 +306,9 @@ export function WishlistProvider({
 }
 
 export function useWishlist() {
-  const context = useContext(WishlistContext);
+  const context = useContext(
+    WishlistContext
+  );
 
   if (!context) {
     throw new Error(
@@ -266,3 +318,4 @@ export function useWishlist() {
 
   return context;
 }
+
