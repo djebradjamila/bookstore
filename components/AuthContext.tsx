@@ -4,6 +4,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 type User = {
+  firstName: string;
+  lastName: string;
   name: string;
   email: string;
 };
@@ -28,7 +30,25 @@ export function AuthProvider({
     const storedUser = localStorage.getItem("currentUser");
 
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const parsedUser = JSON.parse(storedUser);
+
+      // Compatibility with existing accounts
+      const nameParts = parsedUser.name?.trim().split(/\s+/) || [];
+
+      const firstName =
+        parsedUser.firstName || nameParts[0] || "";
+
+      const lastName =
+        parsedUser.lastName ||
+        nameParts.slice(1).join(" ") ||
+        "";
+
+      setUser({
+        firstName,
+        lastName,
+        name: parsedUser.name || `${firstName} ${lastName}`.trim(),
+        email: parsedUser.email,
+      });
     }
   }, []);
 

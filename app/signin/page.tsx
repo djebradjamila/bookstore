@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Suspense, useState } from "react";
@@ -45,6 +46,8 @@ function SignInForm() {
       }
 
       login({
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
         name: data.user.name,
         email: data.user.email,
       });
@@ -186,3 +189,4 @@ export default function SignIn() {
     </Suspense>
   );
 }
+

@@ -1,10 +1,20 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCart } from "@/components/CartContext";
 import { useAuth } from "@/components/AuthContext";
-import Link from "next/link";
+import {
+  Country,
+  State,
+  City,
+} from "country-state-city";
+import {
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from "libphonenumber-js";
 
 export default function Checkout() {
   const router = useRouter();
@@ -13,7 +23,27 @@ export default function Checkout() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderError, setOrderError] = useState("");
+
+  const [phone, setPhone] = useState("");
+  const [countryCode, setCountryCode] = useState("DZ");
+  const [stateCode, setStateCode] = useState("");
+  const [city, setCity] = useState("");
   const [address, setAddress] = useState("");
+
+  const countries = Country.getAllCountries();
+
+  const selectedCountry = countries.find(
+    (country) => country.isoCode === countryCode
+  );
+
+  const states = countryCode
+    ? State.getStatesOfCountry(countryCode)
+    : [];
+
+  const cities =
+    countryCode && stateCode
+      ? City.getCitiesOfState(countryCode, stateCode)
+      : [];
 
   useEffect(() => {
     if (!user && cart.length > 0) {
@@ -26,30 +56,20 @@ export default function Checkout() {
     0
   );
 
-  if (cart.length === 0) {
-    return (
-      <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="text-5xl">🛒</div>
+  const handleCountryChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setCountryCode(event.target.value);
+    setStateCode("");
+    setCity("");
+  };
 
-          <h1 className="mt-4 text-3xl font-bold text-[#071A33]">
-            Your cart is empty
-          </h1>
-
-          <p className="mt-2 text-sm text-gray-600">
-            Add some books before proceeding to checkout.
-          </p>
-
-          <Link
-            href="/books"
-            className="mt-5 inline-block rounded-full bg-[#E8B04A] px-7 py-2.5 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
-          >
-            Browse Books
-          </Link>
-        </div>
-      </main>
-    );
-  }
+  const handleStateChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    setStateCode(event.target.value);
+    setCity("");
+  };
 
   const handlePlaceOrder = async () => {
     if (!user) {
@@ -57,13 +77,47 @@ export default function Checkout() {
       return;
     }
 
+    setOrderError("");
+
+    if (!phone.trim()) {
+      setOrderError("Please enter your phone number.");
+      return;
+    }
+
+    if (!countryCode) {
+      setOrderError("Please select your country.");
+      return;
+    }
+
+    if (!stateCode) {
+      setOrderError("Please select your state or region.");
+      return;
+    }
+
+    if (!city.trim()) {
+      setOrderError("Please enter or select your city.");
+      return;
+    }
+
     if (!address.trim()) {
-      setOrderError("Please enter your delivery address.");
+      setOrderError("Please enter your full delivery address.");
+      return;
+    }
+
+    // Validate phone according to the selected country
+    const phoneNumber = parsePhoneNumberFromString(
+      phone.trim(),
+      countryCode as CountryCode
+    );
+
+    if (!phoneNumber || !phoneNumber.isValid()) {
+      setOrderError(
+        "Please enter a valid phone number for the selected country."
+      );
       return;
     }
 
     setIsSubmitting(true);
-    setOrderError("");
 
     try {
       const response = await fetch("/api/orders", {
@@ -73,9 +127,25 @@ export default function Checkout() {
         },
         body: JSON.stringify({
           userEmail: user.email,
+
+          // Customer information
+          firstName: user.firstName,
+          lastName: user.lastName,
+
+          // Use international format when possible
+          phone: phoneNumber.number,
+
+          // Delivery information
+          country: selectedCountry?.name || countryCode,
+          region:
+            states.find((state) => state.isoCode === stateCode)?.name ||
+            stateCode,
+          city: city.trim(),
+          address: address.trim(),
+
+          // Order information
           items: cart,
           total: subtotal,
-          address: address.trim(),
         }),
       });
 
@@ -103,6 +173,31 @@ export default function Checkout() {
       setIsSubmitting(false);
     }
   };
+
+  if (cart.length === 0) {
+    return (
+      <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="text-5xl">🛒</div>
+
+          <h1 className="mt-4 text-3xl font-bold text-[#071A33]">
+            Your cart is empty
+          </h1>
+
+          <p className="mt-2 text-sm text-gray-600">
+            Add some books before proceeding to checkout.
+          </p>
+
+          <Link
+            href="/books"
+            className="mt-5 inline-block rounded-full bg-[#E8B04A] px-7 py-2.5 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
+          >
+            Browse Books
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
@@ -133,35 +228,201 @@ export default function Checkout() {
 
             <div className="space-y-4">
 
-              {/* Full Name */}
+              {/* First Name */}
               <div>
-                <p className="text-xs text-gray-500">
-                  Full Name
-                </p>
+                <label
+                  htmlFor="firstName"
+                  className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                >
+                  First Name
+                </label>
 
-                <p className="mt-1 text-sm font-semibold text-[#071A33]">
-                  {user?.name}
-                </p>
+                <input
+                  id="firstName"
+                  type="text"
+                  value={user?.firstName || ""}
+                  readOnly
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-[#071A33] outline-none"
+                />
+              </div>
+
+              {/* Last Name */}
+              <div>
+                <label
+                  htmlFor="lastName"
+                  className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                >
+                  Last Name
+                </label>
+
+                <input
+                  id="lastName"
+                  type="text"
+                  value={user?.lastName || ""}
+                  readOnly
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-[#071A33] outline-none"
+                />
               </div>
 
               {/* Email */}
               <div>
-                <p className="text-xs text-gray-500">
+                <label
+                  htmlFor="email"
+                  className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                >
                   Email
-                </p>
+                </label>
 
-                <p className="mt-1 text-sm font-semibold text-[#071A33]">
-                  {user?.email}
+                <input
+                  id="email"
+                  type="email"
+                  value={user?.email || ""}
+                  readOnly
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-[#071A33] outline-none"
+                />
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                >
+                  Phone Number
+                  <span className="ml-1 text-red-500">*</span>
+                </label>
+
+                <input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(event) =>
+                    setPhone(event.target.value)
+                  }
+                  placeholder="+213 555 123 456"
+                  required
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                />
+
+                <p className="mt-1.5 text-xs text-gray-500">
+                  Enter a valid phone number for the selected country.
                 </p>
               </div>
 
-              {/* Address */}
+              {/* Country */}
+              <div>
+                <label
+                  htmlFor="country"
+                  className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                >
+                  Country
+                  <span className="ml-1 text-red-500">*</span>
+                </label>
+
+                <select
+                  id="country"
+                  value={countryCode}
+                  onChange={handleCountryChange}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                >
+                  {countries.map((country) => (
+                    <option
+                      key={country.isoCode}
+                      value={country.isoCode}
+                    >
+                      {country.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* State / Wilaya */}
+              <div>
+                <label
+                  htmlFor="state"
+                  className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                >
+                  State / Wilaya / Region
+                  <span className="ml-1 text-red-500">*</span>
+                </label>
+
+                <select
+                  id="state"
+                  value={stateCode}
+                  onChange={handleStateChange}
+                  disabled={states.length === 0}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20 disabled:bg-gray-100"
+                >
+                  <option value="">
+                    Select a state / region
+                  </option>
+
+                  {states.map((state) => (
+                    <option
+                      key={state.isoCode}
+                      value={state.isoCode}
+                    >
+                      {state.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City / Commune */}
+              <div>
+                <label
+                  htmlFor="city"
+                  className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+                >
+                  City / Commune
+                  <span className="ml-1 text-red-500">*</span>
+                </label>
+
+                {cities.length > 0 ? (
+                  <select
+                    id="city"
+                    value={city}
+                    onChange={(event) =>
+                      setCity(event.target.value)
+                    }
+                    disabled={!stateCode}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20 disabled:bg-gray-100"
+                  >
+                    <option value="">
+                      Select a city / commune
+                    </option>
+
+                    {cities.map((item, index) => (
+                      <option
+                        key={`${item.name}-${index}`}
+                        value={item.name}
+                      >
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    id="city"
+                    type="text"
+                    value={city}
+                    onChange={(event) =>
+                      setCity(event.target.value)
+                    }
+                    placeholder="Enter your city / commune"
+                    disabled={!stateCode}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20 disabled:bg-gray-100"
+                  />
+                )}
+              </div>
+
+              {/* Full Address */}
               <div>
                 <label
                   htmlFor="address"
                   className="mb-1.5 block text-sm font-semibold text-[#071A33]"
                 >
-                  Delivery Address
+                  Full Address
                   <span className="ml-1 text-red-500">*</span>
                 </label>
 
@@ -172,7 +433,8 @@ export default function Checkout() {
                   onChange={(event) =>
                     setAddress(event.target.value)
                   }
-                  placeholder="Enter your delivery address"
+                  placeholder="Example: Cité 120 logements, bâtiment 4, appartement 12"
+                  required
                   className="w-full resize-none rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
                 />
               </div>
@@ -243,9 +505,9 @@ export default function Checkout() {
               </button>
             </div>
           </div>
-
         </div>
       </div>
     </main>
   );
 }
+

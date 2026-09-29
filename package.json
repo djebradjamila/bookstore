@@ -3,20 +3,22 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-   "dev": "next dev",
-   "build": "next build",
-   "start": "next start",
-   "lint": "eslint",
-   "create-users": "tsx lib/createUsersTable.ts",
-   "check-users": "tsx lib/checkUsers.ts",
-   "create-orders": "tsx lib/createOrdersTable.ts",
-   "check-orders": "tsx lib/checkOrders.ts"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "create-users": "tsx lib/createUsersTable.ts",
+    "check-users": "tsx lib/checkUsers.ts",
+    "create-orders": "tsx lib/createOrdersTable.ts",
+    "check-orders": "tsx lib/checkOrders.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1140.0",
     "@aws-sdk/lib-dynamodb": "^3.1140.0",
     "bcryptjs": "^3.0.3",
+    "country-state-city": "^3.2.1",
     "dotenv": "^18.0.3",
+    "libphonenumber-js": "^1.13.14",
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8"

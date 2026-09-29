@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -9,7 +10,8 @@ export default function SignUp() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -35,7 +37,8 @@ export default function SignUp() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name,
+          firstName,
+          lastName,
           email,
           password,
         }),
@@ -49,6 +52,8 @@ export default function SignUp() {
       }
 
       login({
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
         name: data.user.name,
         email: data.user.email,
       });
@@ -66,7 +71,6 @@ export default function SignUp() {
     <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
       <div className="mx-auto max-w-md">
 
-        {/* Header */}
         <div className="mb-5 text-center">
           <div className="mb-2 text-4xl">📖</div>
 
@@ -79,25 +83,48 @@ export default function SignUp() {
           </p>
         </div>
 
-        {/* Form */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
 
-            {/* Name */}
+            {/* First Name */}
             <div>
               <label
-                htmlFor="name"
+                htmlFor="firstName"
                 className="mb-1.5 block text-sm font-semibold text-[#071A33]"
               >
-                Full Name
+                First Name
               </label>
 
               <input
-                id="name"
+                id="firstName"
                 type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Enter your full name"
+                value={firstName}
+                onChange={(event) =>
+                  setFirstName(event.target.value)
+                }
+                placeholder="Enter your first name"
+                required
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label
+                htmlFor="lastName"
+                className="mb-1.5 block text-sm font-semibold text-[#071A33]"
+              >
+                Last Name
+              </label>
+
+              <input
+                id="lastName"
+                type="text"
+                value={lastName}
+                onChange={(event) =>
+                  setLastName(event.target.value)
+                }
+                placeholder="Enter your last name"
                 required
                 className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
               />
@@ -146,7 +173,9 @@ export default function SignUp() {
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() =>
+                    setShowPassword(!showPassword)
+                  }
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#071A33]"
                 >
                   {showPassword ? "🙈" : "👁️"}
@@ -167,7 +196,9 @@ export default function SignUp() {
                 id="confirmPassword"
                 type={showPassword ? "text" : "password"}
                 value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
+                onChange={(event) =>
+                  setConfirmPassword(event.target.value)
+                }
                 placeholder="Confirm your password"
                 required
                 minLength={6}
@@ -189,7 +220,6 @@ export default function SignUp() {
               </p>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               className="w-full rounded-full bg-[#E8B04A] px-6 py-3 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
@@ -198,7 +228,6 @@ export default function SignUp() {
             </button>
           </form>
 
-          {/* Sign In */}
           <p className="mt-5 text-center text-sm text-gray-600">
             Already have an account?{" "}
             <Link
@@ -213,3 +242,4 @@ export default function SignUp() {
     </main>
   );
 }
+

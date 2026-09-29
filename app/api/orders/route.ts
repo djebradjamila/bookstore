@@ -54,24 +54,35 @@ export async function POST(request: Request) {
   try {
     const {
       userEmail,
+      firstName,
+      lastName,
+      phone,
+      country,
+      region,
+      city,
+      address,
       items,
       total,
-      address,
     } = await request.json();
 
-    // Validate order information
+    // Validate required order information
     if (
       !userEmail ||
+      !firstName ||
+      !lastName ||
+      !phone ||
+      !country ||
+      !region ||
+      !city ||
+      !address ||
       !items ||
       items.length === 0 ||
-      total === undefined ||
-      !address ||
-      !address.trim()
+      total === undefined
     ) {
       return Response.json(
         {
           error:
-            "User email, items, total and delivery address are required.",
+            "Customer information, delivery information, items and total are required.",
         },
         { status: 400 }
       );
@@ -82,7 +93,19 @@ export async function POST(request: Request) {
     const order = {
       orderId,
       userEmail: userEmail.trim().toLowerCase(),
+
+      // Customer information
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone: phone.trim(),
+
+      // Delivery information
+      country: country.trim(),
+      region: region.trim(),
+      city: city.trim(),
       address: address.trim(),
+
+      // Order information
       items,
       total,
       status: "pending",
@@ -108,8 +131,7 @@ export async function POST(request: Request) {
 
     return Response.json(
       {
-        error:
-          "Something went wrong while creating the order.",
+        error: "Something went wrong while creating the order.",
       },
       { status: 500 }
     );
