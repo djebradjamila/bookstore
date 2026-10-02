@@ -1,7 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Heart, Search, ShoppingCart } from "lucide-react";
 import { useWishlist } from "@/components/WishlistContext";
 import { useCart } from "@/components/CartContext";
 
@@ -12,63 +13,52 @@ type Book = {
   price: number;
   category: string;
   image: string;
+  stock: number;
 };
 
-const categories = [
-  "All Categories",
-  "Novels",
-  "Computer Science",
-  "Mathematics",
-  "Science",
-  "History",
-];
-
-function BooksContent() {
-  const searchParams = useSearchParams();
-
-  const categoryFromUrl = searchParams.get("category");
-  const searchFromUrl = searchParams.get("search") || "";
+export default function BooksPage() {
+  const { wishlist, toggleWishlist } = useWishlist();
+  const { addToCart } = useCart();
 
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [search, setSearch] = useState(searchFromUrl);
-  const [category, setCategory] = useState(
-    categoryFromUrl || "All Categories"
-  );
-  const [sort, setSort] = useState("Sort by");
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [sort, setSort] = useState("default");
 
-  const { wishlist, toggleWishlist, isWishlisted } = useWishlist();
-  const { addToCart } = useCart();
-
-  useEffect(() => {
-    setCategory(categoryFromUrl || "All Categories");
-    setSearch(searchFromUrl);
-  }, [categoryFromUrl, searchFromUrl]);
-
-  // Fetch books from DynamoDB through our API
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const response = await fetch(
-          `${window.location.origin}/api/books`
-        );
+        setLoading(true);
+
+        const response = await fetch("/api/books");
 
         const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.message || "Failed to fetch books");
+          throw new Error(
+            data.message || "Failed to fetch books"
+          );
         }
 
-        const formattedBooks: Book[] = data.books.map((book: any) => ({
-          id: book.id?.S || book.id || "",
-          title: book.title?.S || book.title || "",
-          author: book.author?.S || book.author || "",
-          price: Number(book.price?.N || book.price || 0),
-          category: book.category?.S || book.category || "",
-          image: book.image?.S || book.image || "",
-        }));
+        const formattedBooks: Book[] = data.books.map(
+          (book: any) => ({
+            id: book.id?.S || book.id || "",
+            title: book.title?.S || book.title || "",
+            author: book.author?.S || book.author || "",
+            price: Number(
+              book.price?.N || book.price || 0
+            ),
+            category:
+              book.category?.S || book.category || "",
+            image: book.image?.S || book.image || "",
+            stock: Number(
+              book.stock?.N || book.stock || 0
+            ),
+          })
+        );
 
         setBooks(formattedBooks);
       } catch (err) {
@@ -82,96 +72,132 @@ function BooksContent() {
     fetchBooks();
   }, []);
 
-  // Filter books by search and category
-  const filteredBooks = books
-    .filter((book) => {
-      const matchesSearch = `${book.title} ${book.author}`
-        .toLowerCase()
-        .includes(search.toLowerCase());
+  const categories = useMemo(() => {
+    const uniqueCategories = Array.from(
+      new Set(books.map((book) => book.category).filter(Boolean))
+    );
 
-      const matchesCategory =
-        category === "All Categories" ||
-        book.category.toLowerCase() === category.toLowerCase();
+    return ["All", ...uniqueCategories];
+  }, [books]);
 
-      return matchesSearch && matchesCategory;
-    })
+  const filteredBooks = useMemo(() => {
+    let result = [...books];
 
-    // Sort books
-    .sort((a, b) => {
-      if (sort === "Price: Low to High") {
-        return a.price - b.price;
-      }
+    if (search.trim()) {
+      const searchValue = search.toLowerCase();
 
-      if (sort === "Price: High to Low") {
-        return b.price - a.price;
-      }
+      result = result.filter(
+        (book) =>
+          book.title.toLowerCase().includes(searchValue) ||
+          book.author.toLowerCase().includes(searchValue) ||
+          book.category.toLowerCase().includes(searchValue)
+      );
+    }
 
-      return 0;
-    });
+    if (category !== "All") {
+      result = result.filter(
+        (book) => book.category === category
+      );
+    }
 
-  const pageTitle =
-    category === "All Categories" ? "All Books" : category;
+    if (sort === "price-low") {
+      result.sort((a, b) => a.price - b.price);
+    }
 
-  const pageDescription =
-    category === "All Categories"
-      ? "Explore our collection and discover your next favorite book."
-      : `Discover our ${category.toLowerCase()} books.`;
+    if (sort === "price-high") {
+      result.sort((a, b) => b.price - a.price);
+    }
+
+    if (sort === "title") {
+      result.sort((a, b) =>
+        a.title.localeCompare(b.title)
+      );
+    }
+
+    return result;
+  }, [books, search, category, sort]);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex min-h-[400px] items-center justify-center">
+            <p className="text-lg text-gray-500">
+              Loading books...
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+            <p className="font-semibold text-red-700">
+              {error}
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-[#F8F4EC]">
+    <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
+      <div className="mx-auto max-w-7xl">
 
-      {/* Compact Page Header */}
-      <section className="px-6 py-8">
-        <div className="mx-auto max-w-4xl text-center">
-
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#B8892D]">
-            {category === "All Categories"
-              ? "Our Collection"
-              : "Book Category"}
+        {/* Header */}
+        <div className="mb-10">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.2em] text-[#B8892D]">
+            Bookstore
           </p>
 
-          <h1 className="mt-1 text-3xl font-bold text-[#071A33] md:text-4xl">
-            {pageTitle}
+          <h1 className="text-4xl font-bold text-[#071A33] md:text-5xl">
+            Our Books
           </h1>
 
-          <p className="mx-auto mt-2 max-w-xl text-sm text-gray-600">
-            {pageDescription}
+          <p className="mt-3 text-gray-600">
+            Discover books from different categories and
+            find your next favorite read.
           </p>
-
         </div>
-      </section>
 
-      {/* Content */}
-      <section className="mx-auto max-w-7xl px-6 pb-10">
-
-        {/* Search and Filters */}
-        <div className="mb-8 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-gray-100">
-          <div className="flex flex-col gap-3 lg:flex-row">
+        {/* Search and filters */}
+        <div className="mb-10 rounded-3xl bg-white p-5 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-[1fr_220px_220px]">
 
             {/* Search */}
-            <div className="relative flex-1">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-gray-400">
-                🔍
-              </span>
+            <div className="relative">
+              <Search
+                size={20}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
 
               <input
                 type="text"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search books or authors..."
-                className="w-full rounded-xl border border-gray-200 bg-[#F8F4EC] py-3 pl-12 pr-4 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
+                placeholder="Search books, authors..."
+                className="w-full rounded-full border border-gray-200 bg-[#F8F4EC] py-3 pl-12 pr-5 outline-none transition focus:border-[#B8892D]"
               />
             </div>
 
             {/* Category */}
             <select
               value={category}
-              onChange={(event) => setCategory(event.target.value)}
-              className="rounded-xl border border-gray-200 bg-[#F8F4EC] px-5 py-3 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+              onChange={(e) =>
+                setCategory(e.target.value)
+              }
+              className="rounded-full border border-gray-200 bg-[#F8F4EC] px-5 py-3 text-[#071A33] outline-none focus:border-[#B8892D]"
             >
-              {categories.map((categoryOption) => (
-                <option key={categoryOption}>
-                  {categoryOption}
+              {categories.map((item) => (
+                <option key={item} value={item}>
+                  {item}
                 </option>
               ))}
             </select>
@@ -179,272 +205,188 @@ function BooksContent() {
             {/* Sort */}
             <select
               value={sort}
-              onChange={(event) => setSort(event.target.value)}
-              className="rounded-xl border border-gray-200 bg-[#F8F4EC] px-5 py-3 text-[#071A33] outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+              onChange={(e) => setSort(e.target.value)}
+              className="rounded-full border border-gray-200 bg-[#F8F4EC] px-5 py-3 text-[#071A33] outline-none focus:border-[#B8892D]"
             >
-              <option>Sort by</option>
-              <option>Price: Low to High</option>
-              <option>Price: High to Low</option>
-              <option>Newest</option>
+              <option value="default">
+                Sort by
+              </option>
+              <option value="price-low">
+                Price: Low to High
+              </option>
+              <option value="price-high">
+                Price: High to Low
+              </option>
+              <option value="title">
+                Title: A-Z
+              </option>
             </select>
-
           </div>
         </div>
 
-        {/* Loading */}
-        {loading && (
-          <div className="py-16 text-center">
-            <div className="text-4xl">📚</div>
+        {/* Results */}
+        <div className="mb-6 flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            {filteredBooks.length} book
+            {filteredBooks.length !== 1 ? "s" : ""} found
+          </p>
+        </div>
 
-            <p className="mt-3 text-gray-500">
-              Loading books...
-            </p>
-          </div>
-        )}
-
-        {/* Error */}
-        {!loading && error && (
-          <div className="rounded-3xl bg-white py-16 text-center shadow-sm">
-            <div className="text-5xl">⚠️</div>
-
-            <h2 className="mt-5 text-2xl font-bold text-[#071A33]">
-              Something went wrong
+        {filteredBooks.length === 0 ? (
+          <div className="rounded-3xl bg-white p-12 text-center shadow-sm">
+            <h2 className="text-2xl font-bold text-[#071A33]">
+              No books found
             </h2>
 
-            <p className="mt-2 text-gray-500">
-              {error}
+            <p className="mt-3 text-gray-500">
+              Try another search or category.
             </p>
           </div>
-        )}
+        ) : (
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {filteredBooks.map((book) => {
+              const isOutOfStock = book.stock <= 0;
 
-        {/* Results */}
-        {!loading && !error && (
-          <>
-            {/* Results count */}
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              const isWishlisted = wishlist.includes(
+                book.title
+              );
 
-              <p className="text-sm text-gray-500">
-                Showing{" "}
-                <span className="font-semibold text-[#071A33]">
-                  {filteredBooks.length}
-                </span>{" "}
-                {filteredBooks.length === 1 ? "book" : "books"}
+              return (
+                <div
+                  key={book.id}
+                  className="group overflow-hidden rounded-3xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                >
+                  {/* Image */}
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={
+                        book.image ||
+                        "/books/default.jpg"
+                      }
+                      alt={book.title}
+                      className={`h-72 w-full object-cover transition duration-500 ${
+                        isOutOfStock
+                          ? "grayscale opacity-60"
+                          : "group-hover:scale-105"
+                      }`}
+                    />
 
-                {category !== "All Categories" && (
-                  <>
-                    {" "}in{" "}
-                    <span className="font-semibold text-[#071A33]">
-                      {category}
-                    </span>
-                  </>
-                )}
-              </p>
-
-              <div className="flex items-center gap-4">
-
-                <p className="text-sm font-medium text-gray-500">
-                  Wishlist{" "}
-                  <span className="font-bold text-[#B8892D]">
-                    {wishlist.length}
-                  </span>
-                </p>
-
-                {(search ||
-                  category !== "All Categories" ||
-                  sort !== "Sort by") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSearch("");
-                      setCategory("All Categories");
-                      setSort("Sort by");
-                    }}
-                    className="text-sm font-semibold text-[#B8892D] transition hover:text-[#071A33]"
-                  >
-                    Clear filters
-                  </button>
-                )}
-
-              </div>
-            </div>
-
-            {/* Books */}
-            {filteredBooks.length > 0 ? (
-              <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-
-                {filteredBooks.map((book) => (
-                  <article
-                    key={book.id}
-                    className="group relative overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
-                  >
-
-                    {/* Image */}
-                    <div className="relative h-[360px] overflow-hidden bg-[#EEE8DC]">
-
-                      <img
-                        src={book.image}
-                        alt={book.title}
-                        className="h-full w-full object-cover transition duration-700 ease-out group-hover:scale-110"
-                      />
-
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#071A33]/20 via-transparent to-transparent opacity-0 transition duration-500 group-hover:opacity-100" />
-
-                      {/* Wishlist */}
-                      <button
-                        type="button"
-                        aria-label={
-                          isWishlisted(book.title)
-                            ? `Remove ${book.title} from wishlist`
-                            : `Add ${book.title} to wishlist`
+                    {/* Wishlist */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleWishlist(book.title)
+                      }
+                      aria-label={
+                        isWishlisted
+                          ? "Remove from wishlist"
+                          : "Add to wishlist"
+                      }
+                      className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow-md transition hover:scale-110"
+                    >
+                      <Heart
+                        size={21}
+                        className={
+                          isWishlisted
+                            ? "fill-red-500 text-red-500"
+                            : "text-[#071A33]"
                         }
-                        onClick={() => toggleWishlist(book.title)}
-                        className={`absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full border border-white/70 text-xl shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-110 ${
-                          isWishlisted(book.title)
-                            ? "bg-[#071A33] text-[#E8B04A]"
-                            : "bg-white/90 text-[#071A33] hover:bg-[#071A33] hover:text-white"
+                      />
+                    </button>
+
+                    {/* Category */}
+                    <div className="absolute bottom-4 left-4 rounded-full bg-white/95 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[#071A33]">
+                      {book.category}
+                    </div>
+
+                    {/* Out of stock */}
+                    {isOutOfStock && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="rounded-full bg-red-600 px-5 py-2 text-sm font-bold text-white shadow-lg">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Information */}
+                  <div className="p-6">
+                    <h2 className="line-clamp-2 text-xl font-bold text-[#071A33]">
+                      {book.title}
+                    </h2>
+
+                    <p className="mt-2 text-sm text-gray-500">
+                      by {book.author}
+                    </p>
+
+                    <p className="mt-4 text-2xl font-bold text-[#B8892D]">
+                      {book.price.toLocaleString()} DZD
+                    </p>
+
+                    {/* Availability */}
+                    <div className="mt-4">
+                      <p className="text-xs uppercase tracking-wider text-gray-400">
+                        Availability
+                      </p>
+
+                      <p
+                        className={`mt-1 text-sm font-bold ${
+                          isOutOfStock
+                            ? "text-red-600"
+                            : "text-green-600"
                         }`}
                       >
-                        {isWishlisted(book.title) ? "♥" : "♡"}
+                        {isOutOfStock
+                          ? "Out of Stock"
+                          : "In Stock"}
+                      </p>
+                    </div>
+
+                    {/* Buttons */}
+                    <div className="mt-6 grid grid-cols-2 gap-3">
+                      <Link
+                        href={`/book?title=${encodeURIComponent(
+                          book.title
+                        )}`}
+                        className="rounded-full border border-[#071A33] px-4 py-3 text-center font-semibold text-[#071A33] transition hover:bg-[#071A33] hover:text-white"
+                      >
+                        View Book
+                      </Link>
+
+                      <button
+                        type="button"
+                        disabled={isOutOfStock}
+                        onClick={() => {
+                          if (isOutOfStock) return;
+
+                          addToCart({
+                            id: book.id,
+                            title: book.title,
+                            author: book.author,
+                            price: book.price,
+                            image: book.image,
+                          });
+                        }}
+                        className={`flex items-center justify-center gap-2 rounded-full px-4 py-3 font-semibold transition ${
+                          isOutOfStock
+                            ? "cursor-not-allowed bg-gray-200 text-gray-400"
+                            : "bg-[#E8B04A] text-[#071A33] hover:bg-[#F3C866]"
+                        }`}
+                      >
+                        <ShoppingCart size={18} />
+
+                        {isOutOfStock
+                          ? "Out of Stock"
+                          : "Add to Cart"}
                       </button>
-
-                      {/* Category badge */}
-                      <div className="absolute bottom-4 left-4">
-                        <span className="rounded-full border border-[#E8B04A]/40 bg-[#071A33]/90 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#E8B04A] backdrop-blur-sm">
-                          {book.category}
-                        </span>
-                      </div>
-
                     </div>
-
-                    {/* Information */}
-                    <div className="p-6">
-
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#B8892D]">
-                        {book.category}
-                      </p>
-
-                      <h2 className="mt-2 line-clamp-1 text-2xl font-bold text-[#071A33] transition-colors duration-300 group-hover:text-[#B8892D]">
-                        {book.title}
-                      </h2>
-
-                      <p className="mt-2 text-sm text-gray-500">
-                        by{" "}
-                        <span className="font-medium text-gray-700">
-                          {book.author}
-                        </span>
-                      </p>
-
-                      {/* Rating */}
-                      <div className="mt-4 flex items-center gap-2">
-                        <div className="flex gap-0.5 text-sm text-[#E8B04A]">
-                          ★ ★ ★ ★ ★
-                        </div>
-
-                        <span className="text-xs font-medium text-gray-400">
-                          4.8
-                        </span>
-                      </div>
-
-                      <div className="my-5 h-px bg-gray-100" />
-
-                      {/* Price + Buttons */}
-                      <div className="flex flex-col gap-4">
-
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-gray-400">
-                            Price
-                          </p>
-
-                          <p className="mt-1 text-2xl font-extrabold text-[#071A33]">
-                            {book.price.toLocaleString("fr-FR")}
-
-                            <span className="ml-1 text-sm font-semibold text-[#B8892D]">
-                              DZD
-                            </span>
-                          </p>
-                        </div>
-
-                        <div className="flex flex-col gap-2 sm:flex-row">
-
-                          {/* Add to Cart */}
-                          <button
-                            type="button"
-                            onClick={() =>
-                              addToCart({
-                                title: book.title,
-                                author: book.author,
-                                price: book.price,
-                                image: book.image,
-                              })
-                            }
-                            className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#E8B04A] px-4 py-3 text-sm font-semibold text-[#071A33] shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#F3C866] hover:shadow-lg"
-                          >
-                            🛒 Add to Cart
-                          </button>
-
-                          {/* View Book */}
-                          <a
-                            href={`/book?title=${encodeURIComponent(
-                              book.title
-                            )}`}
-                            className="group/button inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-[#071A33] px-4 py-3 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#E8B04A] hover:text-[#071A33] hover:shadow-lg"
-                          >
-                            View Book
-
-                            <span className="transition-transform duration-300 group-hover/button:translate-x-1">
-                              →
-                            </span>
-                          </a>
-
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                ))}
-
-              </div>
-            ) : (
-
-              /* No Results */
-              <div className="rounded-3xl bg-white py-16 text-center shadow-sm">
-
-                <div className="text-5xl">📚</div>
-
-                <h2 className="mt-5 text-2xl font-bold text-[#071A33]">
-                  No books found
-                </h2>
-
-                <p className="mt-2 text-gray-500">
-                  No books match your current search and category.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearch("");
-                    setCategory("All Categories");
-                    setSort("Sort by");
-                  }}
-                  className="mt-6 rounded-full bg-[#071A33] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#E8B04A] hover:text-[#071A33]"
-                >
-                  Reset Filters
-                </button>
-
-              </div>
-            )}
-
-          </>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         )}
-
-      </section>
+      </div>
     </main>
-  );
-}
-
-export default function Books() {
-  return (
-    <Suspense fallback={<div>Loading books...</div>}>
-      <BooksContent />
-    </Suspense>
   );
 }

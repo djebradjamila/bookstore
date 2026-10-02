@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Suspense, useState } from "react";
@@ -18,12 +17,16 @@ function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (
+    event: React.FormEvent
+  ) => {
     event.preventDefault();
 
     setError("");
     setSuccess("");
+    setLoading(true);
 
     try {
       const response = await fetch("/api/users", {
@@ -41,23 +44,45 @@ function SignInForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Unable to sign in.");
+        setError(
+          data.error || "Unable to sign in."
+        );
         return;
       }
 
+      // Admin accounts must use the admin login page.
+      if (data.user.role === "admin") {
+        setError(
+          "Please use the Admin Sign In page to access the admin panel."
+        );
+        return;
+      }
+
+      // Save normal user session.
       login({
         firstName: data.user.firstName,
         lastName: data.user.lastName,
         name: data.user.name,
         email: data.user.email,
+        role: data.user.role,
       });
 
-      setSuccess(`Welcome back, ${data.user.name}!`);
+      setSuccess(
+        `Welcome back, ${data.user.name}!`
+      );
 
       router.push(redirect);
     } catch (error) {
-      console.error("Sign in error:", error);
-      setError("Unable to connect to the server.");
+      console.error(
+        "Sign in error:",
+        error
+      );
+
+      setError(
+        "Unable to connect to the server."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -67,7 +92,9 @@ function SignInForm() {
 
         {/* Header */}
         <div className="mb-5 text-center">
-          <div className="mb-2 text-4xl">📖</div>
+          <div className="mb-2 text-4xl">
+            📖
+          </div>
 
           <h1 className="text-3xl font-bold text-[#071A33]">
             Welcome Back
@@ -80,7 +107,10 @@ function SignInForm() {
 
         {/* Form */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+          >
 
             {/* Email */}
             <div>
@@ -95,10 +125,13 @@ function SignInForm() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
                 placeholder="Enter your email"
                 required
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                disabled={loading}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20 disabled:bg-gray-100"
               />
             </div>
 
@@ -114,20 +147,34 @@ function SignInForm() {
               <div className="relative">
                 <input
                   id="password"
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) =>
+                    setPassword(event.target.value)
+                  }
                   placeholder="Enter your password"
                   required
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                  disabled={loading}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 pr-12 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20 disabled:bg-gray-100"
                 />
 
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-[#071A33]"
+                  onClick={() =>
+                    setShowPassword(
+                      !showPassword
+                    )
+                  }
+                  disabled={loading}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 transition hover:text-[#071A33] disabled:cursor-not-allowed"
                 >
-                  {showPassword ? "🙈" : "👁️"}
+                  {showPassword
+                    ? "🙈"
+                    : "👁️"}
                 </button>
               </div>
             </div>
@@ -149,9 +196,12 @@ function SignInForm() {
             {/* Submit */}
             <button
               type="submit"
-              className="w-full rounded-full bg-[#E8B04A] px-6 py-3 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
+              disabled={loading}
+              className="w-full rounded-full bg-[#E8B04A] px-6 py-3 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Sign In
+              {loading
+                ? "Signing In..."
+                : "Sign In"}
             </button>
           </form>
 
@@ -165,6 +215,20 @@ function SignInForm() {
               Create an account
             </Link>
           </p>
+
+          {/* Admin Login */}
+          <div className="mt-4 border-t border-gray-100 pt-4 text-center">
+            <p className="text-xs text-gray-500">
+              Are you an administrator?
+            </p>
+
+            <Link
+              href="/admin/signin"
+              className="mt-1 inline-block text-sm font-semibold text-[#071A33] hover:text-[#B8892D] hover:underline"
+            >
+              Admin Sign In
+            </Link>
+          </div>
         </div>
       </div>
     </main>
@@ -177,7 +241,6 @@ export default function SignIn() {
       fallback={
         <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
           <div className="mx-auto max-w-md text-center">
-            <div className="mb-2 text-4xl">📖</div>
             <p className="text-sm text-gray-600">
               Loading...
             </p>
@@ -189,4 +252,3 @@ export default function SignIn() {
     </Suspense>
   );
 }
-

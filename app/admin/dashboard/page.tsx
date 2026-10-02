@@ -2,12 +2,23 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  BookOpen,
+  Users,
+  ShoppingCart,
+  Wallet,
+  AlertTriangle,
+  PackageX,
+  ArrowRight,
+} from "lucide-react";
 
 type Stats = {
   totalBooks: number;
   totalUsers: number;
   totalOrders: number;
   revenue: number;
+  lowStock: number;
+  outOfStock: number;
 };
 
 export default function AdminDashboardPage() {
@@ -16,6 +27,8 @@ export default function AdminDashboardPage() {
     totalUsers: 0,
     totalOrders: 0,
     revenue: 0,
+    lowStock: 0,
+    outOfStock: 0,
   });
 
   const [loading, setLoading] = useState(true);
@@ -24,6 +37,9 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     const loadStats = async () => {
       try {
+        setLoading(true);
+        setError("");
+
         const response = await fetch("/api/admin/stats");
 
         if (!response.ok) {
@@ -33,13 +49,17 @@ export default function AdminDashboardPage() {
         const data = await response.json();
 
         if (!data.success) {
-          throw new Error(data.message || "Failed to load statistics");
+          throw new Error(
+            data.message || "Failed to load statistics"
+          );
         }
 
         setStats(data.stats);
       } catch (error) {
         console.error("Dashboard stats error:", error);
-        setError("Unable to load dashboard statistics.");
+        setError(
+          "Unable to load dashboard statistics."
+        );
       } finally {
         setLoading(false);
       }
@@ -48,12 +68,44 @@ export default function AdminDashboardPage() {
     loadStats();
   }, []);
 
+  const statCards = [
+    {
+      title: "Total Books",
+      value: stats.totalBooks,
+      icon: BookOpen,
+    },
+    {
+      title: "Total Users",
+      value: stats.totalUsers,
+      icon: Users,
+    },
+    {
+      title: "Total Orders",
+      value: stats.totalOrders,
+      icon: ShoppingCart,
+    },
+    {
+      title: "Revenue",
+      value: `${stats.revenue.toLocaleString()} DZD`,
+      icon: Wallet,
+    },
+    {
+      title: "Low Stock",
+      value: stats.lowStock,
+      icon: AlertTriangle,
+    },
+    {
+      title: "Out of Stock",
+      value: stats.outOfStock,
+      icon: PackageX,
+    },
+  ];
+
   return (
     <div className="min-h-screen p-6 md:p-8">
-
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-3xl font-bold text-[#071A33]">
           Dashboard
         </h1>
 
@@ -70,103 +122,109 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {statCards.map((card) => {
+          const Icon = card.icon;
 
-        {/* Books */}
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">
-                Total Books
-              </p>
+          return (
+            <div
+              key={card.title}
+              className="rounded-xl bg-white p-6 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">
+                    {card.title}
+                  </p>
 
-              <p className="mt-2 text-3xl font-bold">
-                {loading ? "..." : stats.totalBooks}
-              </p>
+                  <p className="mt-2 text-3xl font-bold text-[#071A33]">
+                    {loading ? "..." : card.value}
+                  </p>
+                </div>
+
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F8F4EC]">
+                  <Icon
+                    size={23}
+                    className="text-[#B8892D]"
+                  />
+                </div>
+              </div>
             </div>
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F8F4EC] text-2xl">
-              📚
-            </div>
-          </div>
-        </div>
-
-        {/* Users */}
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">
-                Total Users
-              </p>
-
-              <p className="mt-2 text-3xl font-bold">
-                {loading ? "..." : stats.totalUsers}
-              </p>
-            </div>
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F8F4EC] text-2xl">
-              👥
-            </div>
-          </div>
-        </div>
-
-        {/* Orders */}
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">
-                Total Orders
-              </p>
-
-              <p className="mt-2 text-3xl font-bold">
-                {loading ? "..." : stats.totalOrders}
-              </p>
-            </div>
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F8F4EC] text-2xl">
-              🛒
-            </div>
-          </div>
-        </div>
-
-        {/* Revenue */}
-        <div className="rounded-xl bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">
-                Revenue
-              </p>
-
-              <p className="mt-2 text-3xl font-bold">
-                {loading
-                  ? "..."
-                  : `${stats.revenue.toLocaleString()} DZD`}
-              </p>
-            </div>
-
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F8F4EC] text-2xl">
-              💰
-            </div>
-          </div>
-        </div>
-
+          );
+        })}
       </div>
+
+      {/* Stock Warning */}
+      {!loading &&
+        (stats.lowStock > 0 ||
+          stats.outOfStock > 0) && (
+          <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F8F4EC]">
+                <AlertTriangle
+                  size={21}
+                  className="text-[#B8892D]"
+                />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-semibold text-[#071A33]">
+                  Stock Alert
+                </h2>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  {stats.outOfStock > 0 &&
+                    `${stats.outOfStock} book${
+                      stats.outOfStock > 1 ? "s are" : " is"
+                    } out of stock.`}
+
+                  {stats.outOfStock > 0 &&
+                    stats.lowStock > 0 &&
+                    " "}
+
+                  {stats.lowStock > 0 &&
+                    `${stats.lowStock} book${
+                      stats.lowStock > 1 ? "s have" : " has"
+                    } low stock.`}
+                </p>
+
+                <Link
+                  href="/admin/products"
+                  className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#B8892D] hover:underline"
+                >
+                  Manage Products
+                  <ArrowRight size={16} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
       {/* Quick Actions */}
       <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-
-        <h2 className="text-xl font-semibold">
+        <h2 className="text-xl font-semibold text-[#071A33]">
           Quick Actions
         </h2>
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
           <Link
             href="/admin/products"
-            className="rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
+            className="group rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
           >
-            <p className="font-semibold">
-              📚 Manage Products
+            <div className="flex items-center justify-between">
+              <BookOpen
+                size={20}
+                className="text-[#B8892D]"
+              />
+
+              <ArrowRight
+                size={17}
+                className="text-gray-400 transition group-hover:translate-x-1"
+              />
+            </div>
+
+            <p className="mt-3 font-semibold text-[#071A33]">
+              Manage Products
             </p>
 
             <p className="mt-1 text-sm text-gray-500">
@@ -176,10 +234,22 @@ export default function AdminDashboardPage() {
 
           <Link
             href="/admin/categories"
-            className="rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
+            className="group rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
           >
-            <p className="font-semibold">
-              🏷️ Manage Categories
+            <div className="flex items-center justify-between">
+              <BookOpen
+                size={20}
+                className="text-[#B8892D]"
+              />
+
+              <ArrowRight
+                size={17}
+                className="text-gray-400 transition group-hover:translate-x-1"
+              />
+            </div>
+
+            <p className="mt-3 font-semibold text-[#071A33]">
+              Manage Categories
             </p>
 
             <p className="mt-1 text-sm text-gray-500">
@@ -189,10 +259,22 @@ export default function AdminDashboardPage() {
 
           <Link
             href="/admin/users"
-            className="rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
+            className="group rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
           >
-            <p className="font-semibold">
-              👥 Manage Users
+            <div className="flex items-center justify-between">
+              <Users
+                size={20}
+                className="text-[#B8892D]"
+              />
+
+              <ArrowRight
+                size={17}
+                className="text-gray-400 transition group-hover:translate-x-1"
+              />
+            </div>
+
+            <p className="mt-3 font-semibold text-[#071A33]">
+              Manage Users
             </p>
 
             <p className="mt-1 text-sm text-gray-500">
@@ -202,20 +284,30 @@ export default function AdminDashboardPage() {
 
           <Link
             href="/admin/orders"
-            className="rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
+            className="group rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
           >
-            <p className="font-semibold">
-              🛒 Manage Orders
+            <div className="flex items-center justify-between">
+              <ShoppingCart
+                size={20}
+                className="text-[#B8892D]"
+              />
+
+              <ArrowRight
+                size={17}
+                className="text-gray-400 transition group-hover:translate-x-1"
+              />
+            </div>
+
+            <p className="mt-3 font-semibold text-[#071A33]">
+              Manage Orders
             </p>
 
             <p className="mt-1 text-sm text-gray-500">
               View and manage orders.
             </p>
           </Link>
-
         </div>
       </div>
-
     </div>
   );
 }

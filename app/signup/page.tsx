@@ -51,11 +51,13 @@ export default function SignUp() {
         return;
       }
 
+      // Save the new user session.
       login({
         firstName: data.user.firstName,
         lastName: data.user.lastName,
         name: data.user.name,
         email: data.user.email,
+        role: data.user.role || "user",
       });
 
       setSuccess("Account created successfully!");
@@ -71,6 +73,7 @@ export default function SignUp() {
     <main className="min-h-screen bg-[#F8F4EC] px-6 py-8">
       <div className="mx-auto max-w-md">
 
+        {/* Header */}
         <div className="mb-5 text-center">
           <div className="mb-2 text-4xl">📖</div>
 
@@ -83,6 +86,7 @@ export default function SignUp() {
           </p>
         </div>
 
+        {/* Form */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -143,7 +147,9 @@ export default function SignUp() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
                 placeholder="Enter your email"
                 required
                 className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
@@ -164,7 +170,9 @@ export default function SignUp() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) =>
+                    setPassword(event.target.value)
+                  }
                   placeholder="Create a password"
                   required
                   minLength={6}
@@ -220,6 +228,7 @@ export default function SignUp() {
               </p>
             )}
 
+            {/* Submit */}
             <button
               type="submit"
               className="w-full rounded-full bg-[#E8B04A] px-6 py-3 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
@@ -228,6 +237,7 @@ export default function SignUp() {
             </button>
           </form>
 
+          {/* Sign In */}
           <p className="mt-5 text-center text-sm text-gray-600">
             Already have an account?{" "}
             <Link

@@ -9,6 +9,7 @@ import {
 } from "react";
 
 export type CartItem = {
+  id: string;
   title: string;
   author: string;
   price: number;
@@ -76,7 +77,20 @@ export function CartProvider({
 
     if (storedCart) {
       try {
-        setCart(JSON.parse(storedCart));
+        const parsedCart = JSON.parse(storedCart);
+
+        // Keep only valid cart items.
+        const validCart = Array.isArray(parsedCart)
+          ? parsedCart.filter(
+              (item) =>
+                item &&
+                typeof item.id === "string" &&
+                typeof item.title === "string" &&
+                typeof item.quantity === "number"
+            )
+          : [];
+
+        setCart(validCart);
       } catch {
         localStorage.removeItem("cart");
         setCart([]);
@@ -132,12 +146,12 @@ export function CartProvider({
   ) => {
     setCart((currentCart) => {
       const existingBook = currentCart.find(
-        (item) => item.title === book.title
+        (item) => item.id === book.id
       );
 
       if (existingBook) {
         return currentCart.map((item) =>
-          item.title === book.title
+          item.id === book.id
             ? {
                 ...item,
                 quantity: item.quantity + 1,

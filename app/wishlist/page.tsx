@@ -12,6 +12,7 @@ type Book = {
   price: number;
   category: string;
   image: string;
+  stock: number;
 };
 
 export default function Wishlist() {
@@ -42,17 +43,13 @@ export default function Wishlist() {
             id: book.id?.S || book.id || "",
             title: book.title?.S || book.title || "",
             author: book.author?.S || book.author || "",
-            price: Number(
-              book.price?.N || book.price || 0
-            ),
+            price: Number(book.price?.N || book.price || 0),
             category:
-              book.category?.S ||
-              book.category ||
-              "",
-            image:
-              book.image?.S ||
-              book.image ||
-              "",
+              book.category?.S || book.category || "",
+            image: book.image?.S || book.image || "",
+            stock: Number(
+              book.stock?.N || book.stock || 0
+            ),
           })
         );
 
@@ -72,6 +69,34 @@ export default function Wishlist() {
     wishlist.includes(book.title)
   );
 
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex min-h-[400px] items-center justify-center">
+            <p className="text-lg text-gray-500">
+              Loading wishlist...
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-6">
+            <p className="font-semibold text-red-700">
+              {error}
+            </p>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[#F8F4EC] px-6 py-12">
       <div className="mx-auto max-w-7xl">
@@ -83,7 +108,7 @@ export default function Wishlist() {
           </p>
 
           <h1 className="text-4xl font-bold text-[#071A33] md:text-5xl">
-            My Wishlist ❤️
+            My Wishlist
           </h1>
 
           <p className="mt-3 text-gray-600">
@@ -93,121 +118,116 @@ export default function Wishlist() {
           </p>
         </div>
 
-        {/* Loading */}
-        {loading && (
-          <div className="rounded-3xl bg-white px-6 py-20 text-center shadow-sm">
-            <div className="text-5xl">📚</div>
+        {/* Empty wishlist */}
+        {wishlistBooks.length === 0 ? (
+          <div className="rounded-3xl bg-white p-12 text-center shadow-sm">
+            <div className="mb-5 text-6xl">♡</div>
 
-            <p className="mt-4 text-gray-500">
-              Loading wishlist...
-            </p>
-          </div>
-        )}
-
-        {/* Error */}
-        {!loading && error && (
-          <div className="rounded-3xl bg-white px-6 py-20 text-center shadow-sm">
-            <div className="text-5xl">⚠️</div>
-
-            <h2 className="mt-5 text-2xl font-bold text-[#071A33]">
-              Something went wrong
+            <h2 className="text-2xl font-bold text-[#071A33]">
+              Your wishlist is empty
             </h2>
 
-            <p className="mt-2 text-gray-500">
-              {error}
+            <p className="mx-auto mt-3 max-w-md text-gray-500">
+              Save your favorite books here and come back
+              whenever you are ready.
             </p>
+
+            <Link
+              href="/books"
+              className="mt-7 inline-flex rounded-full bg-[#E8B04A] px-7 py-3 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
+            >
+              Explore Books
+            </Link>
           </div>
-        )}
+        ) : (
+          /* Wishlist books */
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {wishlistBooks.map((book) => {
+              const isOutOfStock = book.stock <= 0;
 
-        {/* Empty Wishlist */}
-        {!loading &&
-          !error &&
-          wishlistBooks.length === 0 && (
-            <div className="rounded-3xl bg-white px-6 py-20 text-center shadow-sm">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#F8F4EC] text-5xl">
-                ♡
-              </div>
-
-              <h2 className="mt-6 text-2xl font-bold text-[#071A33]">
-                Your wishlist is empty
-              </h2>
-
-              <p className="mx-auto mt-3 max-w-md text-gray-500">
-                Save your favorite books here and come back
-                to them whenever you want.
-              </p>
-
-              <Link
-                href="/books"
-                className="mt-7 inline-block rounded-full bg-[#E8B04A] px-7 py-3 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
-              >
-                Discover Books
-              </Link>
-            </div>
-          )}
-
-        {/* Wishlist Books */}
-        {!loading &&
-          !error &&
-          wishlistBooks.length > 0 && (
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {wishlistBooks.map((book) => (
+              return (
                 <div
-                  key={book.id || book.title}
-                  className="group overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-black/5 transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                  key={book.id}
+                  className="group overflow-hidden rounded-3xl bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                 >
-
                   {/* Image */}
-                  <div className="relative">
+                  <div className="relative overflow-hidden">
                     <img
-                      src={book.image}
+                      src={book.image || "/books/default.jpg"}
                       alt={book.title}
-                      className="h-72 w-full object-cover transition duration-500 group-hover:scale-105"
+                      className={`h-72 w-full object-cover transition duration-500 ${
+                        isOutOfStock
+                          ? "grayscale opacity-60"
+                          : "group-hover:scale-105"
+                      }`}
                     />
 
-                    {/* Wishlist Button */}
+                    {/* Wishlist button */}
                     <button
                       type="button"
                       onClick={() =>
                         toggleWishlist(book.title)
                       }
-                      aria-label={`Remove ${book.title} from wishlist`}
-                      className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-2xl text-red-500 shadow-md transition hover:scale-110"
+                      aria-label="Remove from wishlist"
+                      className="absolute right-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-2xl text-red-500 shadow-md transition hover:scale-110"
                     >
                       ♥
                     </button>
 
                     {/* Category */}
-                    <div className="absolute bottom-4 left-4">
-                      <span className="rounded-full bg-[#071A33]/90 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-[#E8B04A]">
-                        {book.category}
-                      </span>
+                    <div className="absolute bottom-4 left-4 rounded-full bg-white/95 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-[#071A33]">
+                      {book.category}
                     </div>
+
+                    {/* Out of stock overlay */}
+                    {isOutOfStock && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="rounded-full bg-red-600 px-5 py-2 text-sm font-bold text-white shadow-lg">
+                          Out of Stock
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Information */}
                   <div className="p-6">
-                    <h2 className="text-xl font-bold text-[#071A33]">
+
+                    <h2 className="line-clamp-2 text-xl font-bold text-[#071A33]">
                       {book.title}
                     </h2>
 
-                    <p className="mt-2 text-gray-600">
-                      by{" "}
-                      <span className="font-medium">
-                        {book.author}
-                      </span>
+                    <p className="mt-2 text-sm text-gray-500">
+                      by {book.author}
                     </p>
 
-                    <p className="mt-4 text-xl font-bold text-[#071A33]">
-                      {book.price.toLocaleString("fr-FR")}{" "}
-                      <span className="text-sm text-[#B8892D]">
-                        DZD
-                      </span>
+                    {/* Price */}
+                    <p className="mt-4 text-2xl font-bold text-[#B8892D]">
+                      {book.price.toLocaleString()} DZD
                     </p>
 
-                    {/* Actions */}
+                    {/* Availability */}
+                    <div className="mt-4">
+                      <p className="text-xs uppercase tracking-wider text-gray-400">
+                        Availability
+                      </p>
+
+                      <p
+                        className={`mt-1 text-sm font-bold ${
+                          isOutOfStock
+                            ? "text-red-600"
+                            : "text-green-600"
+                        }`}
+                      >
+                        {isOutOfStock
+                          ? "Out of Stock"
+                          : "In Stock"}
+                      </p>
+                    </div>
+
+                    {/* Buttons */}
                     <div className="mt-6 grid gap-3 sm:grid-cols-2">
 
+                      {/* View Book */}
                       <Link
                         href={`/book?title=${encodeURIComponent(
                           book.title
@@ -217,36 +237,49 @@ export default function Wishlist() {
                         View Book
                       </Link>
 
+                      {/* Add to Cart */}
                       <button
                         type="button"
-                        onClick={() =>
+                        disabled={isOutOfStock}
+                        onClick={() => {
+                          if (isOutOfStock) return;
+
                           addToCart({
+                            id: book.id,
                             title: book.title,
                             author: book.author,
                             price: book.price,
                             image: book.image,
-                          })
-                        }
-                        className="rounded-full bg-[#E8B04A] px-4 py-3 font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
+                          });
+                        }}
+                        className={`rounded-full px-4 py-3 font-semibold transition ${
+                          isOutOfStock
+                            ? "cursor-not-allowed bg-gray-200 text-gray-400"
+                            : "bg-[#E8B04A] text-[#071A33] hover:bg-[#F3C866]"
+                        }`}
                       >
-                        Add to Cart
+                        {isOutOfStock
+                          ? "Out of Stock"
+                          : "Add to Cart"}
                       </button>
                     </div>
 
+                    {/* Remove */}
                     <button
                       type="button"
                       onClick={() =>
                         toggleWishlist(book.title)
                       }
-                      className="mt-3 w-full rounded-full px-4 py-2 text-sm font-medium text-gray-500 transition hover:text-red-500"
+                      className="mt-4 w-full text-sm font-semibold text-gray-500 transition hover:text-red-600"
                     >
                       Remove from Wishlist
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            })}
+          </div>
+        )}
       </div>
     </main>
   );

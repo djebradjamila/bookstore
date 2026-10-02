@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
+import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { WishlistProvider } from "@/components/WishlistContext";
 import { CartProvider } from "@/components/CartContext";
 import { AuthProvider } from "@/components/AuthContext";
@@ -17,11 +17,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-     <body className="bg-[#F8F4EC] text-[#071A33]">
+      <body className="bg-[#F8F4EC] text-[#071A33]">
         <AuthProvider>
           <WishlistProvider>
             <CartProvider>
-              <Navbar />
+              <ConditionalNavbar />
               {children}
             </CartProvider>
           </WishlistProvider>

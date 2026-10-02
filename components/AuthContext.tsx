@@ -1,23 +1,33 @@
 
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
-type User = {
+export type User = {
   firstName: string;
   lastName: string;
   name: string;
   email: string;
+  username?: string;
+  role: "user" | "admin";
 };
 
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
+  isAdmin: boolean;
+  isLoading: boolean;
   login: (user: User) => void;
   logout: () => void;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext =
+  createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({
   children,
@@ -25,41 +35,109 @@ export function AuthProvider({
   children: React.ReactNode;
 }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("currentUser");
+    try {
+      const storedUser = localStorage.getItem("currentUser");
 
-    if (storedUser) {
+      console.log("AUTH: stored currentUser =", storedUser);
+
+      if (!storedUser) {
+        setUser(null);
+        return;
+      }
+
       const parsedUser = JSON.parse(storedUser);
 
-      // Compatibility with existing accounts
-      const nameParts = parsedUser.name?.trim().split(/\s+/) || [];
+      console.log("AUTH: parsed user =", parsedUser);
+      console.log("AUTH: role =", parsedUser.role);
+
+      const nameParts =
+        typeof parsedUser.name === "string"
+          ? parsedUser.name.trim().split(/\s+/)
+          : [];
 
       const firstName =
-        parsedUser.firstName || nameParts[0] || "";
+        parsedUser.firstName ||
+        nameParts[0] ||
+        "";
 
       const lastName =
         parsedUser.lastName ||
         nameParts.slice(1).join(" ") ||
         "";
 
-      setUser({
+      const restoredUser: User = {
         firstName,
         lastName,
-        name: parsedUser.name || `${firstName} ${lastName}`.trim(),
-        email: parsedUser.email,
-      });
+        name:
+          parsedUser.name ||
+          `${firstName} ${lastName}`.trim(),
+        email: parsedUser.email || "",
+        username: parsedUser.username,
+        role:
+          parsedUser.role === "admin"
+            ? "admin"
+            : "user",
+      };
+
+      console.log(
+        "AUTH: restored user =",
+        restoredUser
+      );
+
+      setUser(restoredUser);
+    } catch (error) {
+      console.error(
+        "AUTH: failed to restore session:",
+        error
+      );
+
+      localStorage.removeItem("currentUser");
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   const login = (user: User) => {
-    localStorage.setItem("currentUser", JSON.stringify(user));
-    setUser(user);
+    const normalizedUser: User = {
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      name:
+        user.name ||
+        `${user.firstName || ""} ${
+          user.lastName || ""
+        }`.trim(),
+      email: user.email || "",
+      username: user.username,
+      role:
+        user.role === "admin"
+          ? "admin"
+          : "user",
+    };
+
+    console.log(
+      "AUTH: login user =",
+      normalizedUser
+    );
+
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify(normalizedUser)
+    );
+
+    setUser(normalizedUser);
+    setIsLoading(false);
   };
 
   const logout = () => {
+    console.log("AUTH: logout");
+
     localStorage.removeItem("currentUser");
     setUser(null);
+    setIsLoading(false);
   };
 
   return (
@@ -67,6 +145,8 @@ export function AuthProvider({
       value={{
         user,
         isAuthenticated: !!user,
+        isAdmin: user?.role === "admin",
+        isLoading,
         login,
         logout,
       }}
@@ -80,9 +160,10 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider");
+    throw new Error(
+      "useAuth must be used inside AuthProvider"
+    );
   }
 
   return context;
 }
-

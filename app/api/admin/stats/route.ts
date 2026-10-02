@@ -6,43 +6,67 @@ import {
 
 const client = new DynamoDBClient({
   region: process.env.AWS_REGION || "local",
-  endpoint: process.env.DYNAMODB_ENDPOINT || "http://localhost:8000",
+  endpoint:
+    process.env.DYNAMODB_ENDPOINT || "http://localhost:8000",
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || "local",
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "local",
+    accessKeyId:
+      process.env.AWS_ACCESS_KEY_ID || "local",
+    secretAccessKey:
+      process.env.AWS_SECRET_ACCESS_KEY || "local",
   },
 });
 
 export async function GET() {
   try {
-    const [booksResult, usersResult, ordersResult] = await Promise.all([
-      client.send(
-        new ScanCommand({
-          TableName: "Books",
-          Select: "COUNT",
-        })
-      ),
+    const [booksResult, usersResult, ordersResult] =
+      await Promise.all([
+        client.send(
+          new ScanCommand({
+            TableName: "Books",
+          })
+        ),
 
-      client.send(
-        new ScanCommand({
-          TableName: "Users",
-          Select: "COUNT",
-        })
-      ),
+        client.send(
+          new ScanCommand({
+            TableName: "Users",
+            Select: "COUNT",
+          })
+        ),
 
-      client.send(
-        new ScanCommand({
-          TableName: "Orders",
-        })
-      ),
-    ]);
+        client.send(
+          new ScanCommand({
+            TableName: "Orders",
+          })
+        ),
+      ]);
 
-    const totalBooks = booksResult.Count || 0;
-    const totalUsers = usersResult.Count || 0;
+    const books = booksResult.Items || [];
     const orders = ordersResult.Items || [];
 
+    const totalBooks = books.length;
+    const totalUsers = usersResult.Count || 0;
     const totalOrders = orders.length;
 
+    // Count books with low stock.
+    // Low stock means between 1 and 5 units.
+    const lowStock = books.filter((book) => {
+      const stock = book.stock?.N
+        ? Number(book.stock.N)
+        : 0;
+
+      return stock > 0 && stock <= 5;
+    }).length;
+
+    // Count books with no stock.
+    const outOfStock = books.filter((book) => {
+      const stock = book.stock?.N
+        ? Number(book.stock.N)
+        : 0;
+
+      return stock === 0;
+    }).length;
+
+    // Calculate total revenue.
     const revenue = orders.reduce((total, order) => {
       const totalValue = order.total?.N
         ? Number(order.total.N)
@@ -53,11 +77,14 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
+
       stats: {
         totalBooks,
         totalUsers,
         totalOrders,
         revenue,
+        lowStock,
+        outOfStock,
       },
     });
   } catch (error) {

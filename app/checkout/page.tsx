@@ -62,6 +62,7 @@ export default function Checkout() {
     setCountryCode(event.target.value);
     setStateCode("");
     setCity("");
+    setOrderError("");
   };
 
   const handleStateChange = (
@@ -69,6 +70,7 @@ export default function Checkout() {
   ) => {
     setStateCode(event.target.value);
     setCity("");
+    setOrderError("");
   };
 
   const handlePlaceOrder = async () => {
@@ -138,8 +140,9 @@ export default function Checkout() {
           // Delivery information
           country: selectedCountry?.name || countryCode,
           region:
-            states.find((state) => state.isoCode === stateCode)?.name ||
-            stateCode,
+            states.find(
+              (state) => state.isoCode === stateCode
+            )?.name || stateCode,
           city: city.trim(),
           address: address.trim(),
 
@@ -151,10 +154,22 @@ export default function Checkout() {
 
       const data = await response.json();
 
+      // --------------------------------------------------
+      // Handle API errors
+      // --------------------------------------------------
+
       if (!response.ok) {
-        setOrderError(
-          data.error || "Unable to create the order."
-        );
+        if (response.status === 409) {
+          setOrderError(
+            data.error ||
+              "Insufficient stock. Please reduce the quantity of one or more books."
+          );
+        } else {
+          setOrderError(
+            data.error || "Unable to create the order."
+          );
+        }
+
         setIsSubmitting(false);
         return;
       }
@@ -169,7 +184,10 @@ export default function Checkout() {
     } catch (error) {
       console.error("Create order error:", error);
 
-      setOrderError("Unable to connect to the server.");
+      setOrderError(
+        "Unable to connect to the server. Please try again."
+      );
+
       setIsSubmitting(false);
     }
   };
@@ -487,9 +505,15 @@ export default function Checkout() {
 
               {/* Error */}
               {orderError && (
-                <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600">
-                  {orderError}
-                </p>
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                  <p className="text-sm font-semibold text-red-700">
+                    Unable to place order
+                  </p>
+
+                  <p className="mt-1 text-sm text-red-600">
+                    {orderError}
+                  </p>
+                </div>
               )}
 
               {/* Place Order */}

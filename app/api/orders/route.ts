@@ -1,21 +1,46 @@
-
 import {
   PutCommand,
   QueryCommand,
-  UpdateCommand,
   DeleteCommand,
+  GetCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { dynamoDB } from "@/lib/dynamodb";
 
-// GET - Get orders for a user
+// --------------------------------------------------
+// GET - Get orders for a user or all orders for admin
+// --------------------------------------------------
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const userEmail = searchParams.get("userEmail");
 
+    const userEmail = searchParams.get("userEmail");
+    const isAdmin = searchParams.get("admin") === "true";
+
+    // ADMIN - Get all orders
+    if (isAdmin) {
+      const result = await dynamoDB.send(
+        new QueryCommand({
+          TableName: "Orders",
+          IndexName: "userEmail-index",
+          KeyConditionExpression: "userEmail = :userEmail",
+          ExpressionAttributeValues: {
+            ":userEmail": "admin",
+          },
+        })
+      );
+
+      return Response.json({
+        success: true,
+        orders: result.Items || [],
+      });
+    }
+
+    // USER - Get orders for one user
     if (!userEmail) {
       return Response.json(
         {
+          success: false,
           error: "User email is required.",
         },
         { status: 400 }
@@ -42,6 +67,7 @@ export async function GET(request: Request) {
 
     return Response.json(
       {
+        success: false,
         error: "Unable to load orders.",
       },
       { status: 500 }
@@ -49,7 +75,10 @@ export async function GET(request: Request) {
   }
 }
 
+// --------------------------------------------------
 // POST - Create a new order
+// --------------------------------------------------
+
 export async function POST(request: Request) {
   try {
     const {
@@ -65,7 +94,10 @@ export async function POST(request: Request) {
       total,
     } = await request.json();
 
+    // --------------------------------------------------
     // Validate required order information
+    // --------------------------------------------------
+
     if (
       !userEmail ||
       !firstName ||
@@ -75,12 +107,13 @@ export async function POST(request: Request) {
       !region ||
       !city ||
       !address ||
-      !items ||
+      !Array.isArray(items) ||
       items.length === 0 ||
       total === undefined
     ) {
       return Response.json(
         {
+          success: false,
           error:
             "Customer information, delivery information, items and total are required.",
         },
@@ -88,10 +121,104 @@ export async function POST(request: Request) {
       );
     }
 
+    // --------------------------------------------------
+    // Validate every order item
+    // --------------------------------------------------
+
+    for (const item of items) {
+      if (
+        !item ||
+        !item.id ||
+        typeof item.id !== "string" ||
+        !item.title ||
+        Number(item.quantity) <= 0
+      ) {
+        return Response.json(
+          {
+            success: false,
+            error:
+              "Each order item must contain a valid book ID, title and quantity.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // --------------------------------------------------
+    // Combine quantities for duplicate books
+    // --------------------------------------------------
+
+    const quantities = new Map<string, number>();
+
+    for (const item of items) {
+      const bookId = String(item.id).trim();
+      const quantity = Number(item.quantity);
+
+      quantities.set(
+        bookId,
+        (quantities.get(bookId) || 0) + quantity
+      );
+    }
+
+    // --------------------------------------------------
+    // Check stock before creating the order
+    //
+    // IMPORTANT:
+    // Stock is NOT decreased here.
+    //
+    // The stock will only be decreased when the admin
+    // confirms the order.
+    // --------------------------------------------------
+
+    for (const [bookId, quantity] of quantities) {
+      const bookResult = await dynamoDB.send(
+        new GetCommand({
+          TableName: "Books",
+          Key: {
+            id: bookId,
+          },
+        })
+      );
+
+      const book = bookResult.Item;
+
+      // Book does not exist
+      if (!book) {
+        return Response.json(
+          {
+            success: false,
+            error: `Book with ID "${bookId}" was not found.`,
+          },
+          { status: 404 }
+        );
+      }
+
+      const stock = Number(book.stock || 0);
+
+      // Not enough stock
+      if (stock < quantity) {
+        return Response.json(
+          {
+            success: false,
+            error: `Not enough stock for "${book.title}". Only ${stock} available.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
+    // --------------------------------------------------
+    // Create order
+    //
+    // Status remains pending.
+    // Stock is NOT changed here.
+    // --------------------------------------------------
+
     const orderId = `ORD-${Date.now()}`;
 
     const order = {
       orderId,
+
       userEmail: userEmail.trim().toLowerCase(),
 
       // Customer information
@@ -107,8 +234,11 @@ export async function POST(request: Request) {
 
       // Order information
       items,
-      total,
+      total: Number(total),
+
+      // Admin must confirm the order
       status: "pending",
+
       createdAt: new Date().toISOString(),
     };
 
@@ -121,6 +251,7 @@ export async function POST(request: Request) {
 
     return Response.json(
       {
+        success: true,
         message: "Order created successfully.",
         order,
       },
@@ -131,6 +262,7 @@ export async function POST(request: Request) {
 
     return Response.json(
       {
+        success: false,
         error: "Something went wrong while creating the order.",
       },
       { status: 500 }
@@ -138,19 +270,22 @@ export async function POST(request: Request) {
   }
 }
 
-// PATCH - Confirm or cancel an order
+// --------------------------------------------------
+// PATCH - Cancel an order
+//
+// The client can only cancel a pending order.
+// Order confirmation is handled by the admin.
+// --------------------------------------------------
+
 export async function PATCH(request: Request) {
   try {
-    const {
-      orderId,
-      userEmail,
-      action,
-    } = await request.json();
+    const { orderId, userEmail, action } =
+      await request.json();
 
-    // Validate request
     if (!orderId || !userEmail || !action) {
       return Response.json(
         {
+          success: false,
           error:
             "Order ID, user email and action are required.",
         },
@@ -158,17 +293,18 @@ export async function PATCH(request: Request) {
       );
     }
 
-    // Validate action
-    if (action !== "confirm" && action !== "cancel") {
+    // The client can only cancel.
+    if (action !== "cancel") {
       return Response.json(
         {
-          error: "Action must be confirm or cancel.",
+          success: false,
+          error:
+            "Order confirmation is handled by the administrator.",
         },
-        { status: 400 }
+        { status: 403 }
       );
     }
 
-    // Find the user's order
     const result = await dynamoDB.send(
       new QueryCommand({
         TableName: "Orders",
@@ -187,75 +323,48 @@ export async function PATCH(request: Request) {
     if (!order) {
       return Response.json(
         {
+          success: false,
           error: "Order not found.",
         },
         { status: 404 }
       );
     }
 
-    // Only pending orders can be modified
+    // Only pending orders can be cancelled.
     if (order.status !== "pending") {
       return Response.json(
         {
-          error: "Only pending orders can be modified.",
+          success: false,
+          error: "Only pending orders can be cancelled.",
         },
         { status: 400 }
       );
     }
 
-    // CANCEL ORDER
-    // The order is permanently deleted from DynamoDB.
-    if (action === "cancel") {
-      await dynamoDB.send(
-        new DeleteCommand({
-          TableName: "Orders",
-          Key: {
-            orderId: order.orderId,
-          },
-        })
-      );
-
-      return Response.json({
-        success: true,
-        message: "Order cancelled and deleted successfully.",
-        status: "cancelled",
-        deleted: true,
-      });
-    }
-
-    // CONFIRM ORDER
-    // The order remains in DynamoDB and its status becomes confirmed.
     await dynamoDB.send(
-      new UpdateCommand({
+      new DeleteCommand({
         TableName: "Orders",
         Key: {
           orderId: order.orderId,
-        },
-        UpdateExpression: "SET #status = :status",
-        ExpressionAttributeNames: {
-          "#status": "status",
-        },
-        ExpressionAttributeValues: {
-          ":status": "confirmed",
         },
       })
     );
 
     return Response.json({
       success: true,
-      message: "Order confirmed successfully.",
-      status: "confirmed",
-      deleted: false,
+      message: "Order cancelled and deleted successfully.",
+      status: "cancelled",
+      deleted: true,
     });
   } catch (error) {
-    console.error("Update order error:", error);
+    console.error("Cancel order error:", error);
 
     return Response.json(
       {
-        error: "Unable to update the order.",
+        success: false,
+        error: "Unable to cancel the order.",
       },
       { status: 500 }
     );
   }
 }
-
