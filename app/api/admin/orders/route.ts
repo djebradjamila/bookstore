@@ -3,6 +3,7 @@ import {
   ScanCommand,
   UpdateCommand,
   TransactWriteCommand,
+  DeleteCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { dynamoDB } from "@/lib/dynamodb";
 
@@ -22,13 +23,8 @@ export async function GET() {
 
     // Newest orders first
     orders.sort((a, b) => {
-      const dateA = new Date(
-        a.createdAt || 0
-      ).getTime();
-
-      const dateB = new Date(
-        b.createdAt || 0
-      ).getTime();
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
 
       return dateB - dateA;
     });
@@ -53,7 +49,7 @@ export async function GET() {
 // --------------------------------------------------
 // PATCH - Admin order actions
 //
-// Actions:
+// Action:
 // - confirm
 //
 // Confirmation:
@@ -83,8 +79,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "The only available admin action is confirm.",
+          error: "The only available admin action is confirm.",
         },
         { status: 400 }
       );
@@ -122,8 +117,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            "Only pending orders can be confirmed.",
+          error: "Only pending orders can be confirmed.",
         },
         { status: 400 }
       );
@@ -144,15 +138,9 @@ export async function PATCH(request: Request) {
 
     // --------------------------------------------------
     // Prepare quantities by book ID
-    //
-    // If the same book appears more than once,
-    // combine its quantities.
     // --------------------------------------------------
 
-    const quantities = new Map<
-      string,
-      number
-    >();
+    const quantities = new Map<string, number>();
 
     for (const item of order.items) {
       const bookId = String(item?.id || "").trim();
@@ -176,14 +164,7 @@ export async function PATCH(request: Request) {
     }
 
     // --------------------------------------------------
-    // Build one transaction:
-    //
-    // - decrease stock for every book
-    // - confirm the order
-    //
-    // The conditions guarantee:
-    // - stock cannot become negative
-    // - the order must still be pending
+    // Build transaction
     // --------------------------------------------------
 
     const transactItems: any[] = [];
@@ -236,8 +217,7 @@ export async function PATCH(request: Request) {
         ExpressionAttributeValues: {
           ":pending": "pending",
           ":confirmed": "confirmed",
-          ":confirmedAt":
-            new Date().toISOString(),
+          ":confirmedAt": new Date().toISOString(),
         },
       },
     });
@@ -258,8 +238,6 @@ export async function PATCH(request: Request) {
         transactionError
       );
 
-      // DynamoDB cancels the complete transaction if
-      // one of the stock conditions fails.
       if (
         transactionError?.name ===
           "TransactionCanceledException" ||
@@ -294,8 +272,87 @@ export async function PATCH(request: Request) {
     return NextResponse.json(
       {
         success: false,
-        error:
-          "Unable to confirm the order.",
+        error: "Unable to confirm the order.",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// --------------------------------------------------
+// DELETE - Delete an order
+//
+// Important:
+// - Only the order is deleted.
+// - Books are NOT deleted.
+// - Stock is NOT changed.
+// --------------------------------------------------
+
+export async function DELETE(request: Request) {
+  try {
+    const { orderId } = await request.json();
+
+    if (!orderId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Order ID is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // --------------------------------------------------
+    // Check that the order exists
+    // --------------------------------------------------
+
+    const ordersResult = await dynamoDB.send(
+      new ScanCommand({
+        TableName: "Orders",
+      })
+    );
+
+    const order = (ordersResult.Items || []).find(
+      (item) => item.orderId === orderId
+    );
+
+    if (!order) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Order not found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    // --------------------------------------------------
+    // Delete order
+    // --------------------------------------------------
+
+    await dynamoDB.send(
+      new DeleteCommand({
+        TableName: "Orders",
+        Key: {
+          orderId,
+        },
+      })
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Order deleted successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "Admin DELETE order error:",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Unable to delete the order.",
       },
       { status: 500 }
     );

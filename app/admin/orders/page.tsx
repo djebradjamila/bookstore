@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,6 +13,7 @@ import {
   X,
   ShoppingBag,
   CheckCircle,
+  Trash2,
 } from "lucide-react";
 
 type OrderItem = {
@@ -144,10 +146,8 @@ export default function AdminOrdersPage() {
         "Order confirmed successfully. Stock has been updated."
       );
 
-      // Refresh orders
       await loadOrders();
 
-      // Update the selected order in the modal
       setSelectedOrder((current) =>
         current
           ? {
@@ -166,6 +166,65 @@ export default function AdminOrdersPage() {
         error instanceof Error
           ? error.message
           : "Unable to confirm order."
+      );
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // Delete order
+  // --------------------------------------------------
+
+  const deleteOrder = async () => {
+    if (!selectedOrder) return;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete order ${selectedOrder.orderId}? This action cannot be undone.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setConfirming(true);
+      setActionMessage("");
+      setActionError("");
+
+      const response = await fetch(
+        "/api/admin/orders",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderId: selectedOrder.orderId,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.error ||
+            "Unable to delete order."
+        );
+      }
+
+      setSelectedOrder(null);
+
+      await loadOrders();
+    } catch (error) {
+      console.error(
+        "Delete order error:",
+        error
+      );
+
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete order."
       );
     } finally {
       setConfirming(false);
@@ -388,8 +447,9 @@ export default function AdminOrdersPage() {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Phone size={14} />
+
                             <span>
-                              {order.phone}
+                              {order.phone || "-"}
                             </span>
                           </div>
                         </td>
@@ -403,8 +463,10 @@ export default function AdminOrdersPage() {
                             />
 
                             <span className="line-clamp-2">
-                              {order.address},{" "}
-                              {order.city}
+                              {order.address || "-"}
+                              {order.city
+                                ? `, ${order.city}`
+                                : ""}
                             </span>
                           </div>
                         </td>
@@ -433,6 +495,7 @@ export default function AdminOrdersPage() {
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Calendar size={14} />
+
                             {formatDate(
                               order.createdAt
                             )}
@@ -584,7 +647,7 @@ export default function AdminOrdersPage() {
                       />
 
                       <p className="text-sm font-medium text-[#071A33]">
-                        {selectedOrder.phone}
+                        {selectedOrder.phone || "-"}
                       </p>
                     </div>
                   </div>
@@ -625,16 +688,18 @@ export default function AdminOrdersPage() {
 
                 <div className="rounded-xl bg-[#F8F4EC] p-4">
                   <p className="font-medium text-[#071A33]">
-                    {selectedOrder.address}
+                    {selectedOrder.address || "-"}
                   </p>
 
                   <p className="mt-1 text-sm text-gray-600">
-                    {selectedOrder.city},{" "}
-                    {selectedOrder.region}
+                    {selectedOrder.city || "-"}
+                    {selectedOrder.region
+                      ? `, ${selectedOrder.region}`
+                      : ""}
                   </p>
 
                   <p className="text-sm text-gray-600">
-                    {selectedOrder.country}
+                    {selectedOrder.country || "-"}
                   </p>
                 </div>
               </section>
@@ -746,7 +811,7 @@ export default function AdminOrdersPage() {
 
             {/* Modal footer */}
             <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-6 py-4">
-              <div>
+              <div className="flex items-center gap-3">
                 {selectedOrder.status ===
                   "pending" && (
                   <button
@@ -761,6 +826,18 @@ export default function AdminOrdersPage() {
                       : "Confirm Order"}
                   </button>
                 )}
+
+                <button
+                  onClick={deleteOrder}
+                  disabled={confirming}
+                  className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Trash2 size={17} />
+
+                  {confirming
+                    ? "Processing..."
+                    : "Delete Order"}
+                </button>
               </div>
 
               <button
@@ -778,3 +855,4 @@ export default function AdminOrdersPage() {
     </div>
   );
 }
+

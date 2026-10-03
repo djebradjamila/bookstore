@@ -1,8 +1,15 @@
+
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import * as LucideIcons from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  BookOpen,
+  Search,
+} from "lucide-react";
 
 type Category = {
   id: string;
@@ -11,58 +18,43 @@ type Category = {
   icon?: string;
 };
 
-const allIcons = Object.entries(LucideIcons).filter(
-  ([name, value]) => {
-    if (name === "default") return false;
-    if (name === "createLucideIcon") return false;
-    if (name === "IconNode") return false;
-    if (name === "Icon") return false;
-
-    return (
-      /^[A-Z]/.test(name) &&
-      (typeof value === "function" ||
-        (typeof value === "object" && value !== null))
-    );
-  }
-) as [string, LucideIcon][];
+type Book = {
+  id?: string;
+  title?: string;
+  category?: {
+    S?: string;
+  };
+  [key: string]: any;
+};
 
 export default function AdminCategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [books, setBooks] = useState<Book[]>([]);
+
   const [loading, setLoading] = useState(true);
+
+  const [search, setSearch] = useState("");
+
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  const [editingCategory, setEditingCategory] =
+    useState<Category | null>(null);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState("BookOpen");
+  const [icon, setIcon] = useState("");
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  const [iconSearch, setIconSearch] = useState("");
-  const [showIconLibrary, setShowIconLibrary] = useState(false);
-
-  const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const filteredIcons = useMemo(() => {
-    const search = iconSearch.toLowerCase().trim();
+  const [saving, setSaving] = useState(false);
 
-    if (!search) {
-      return allIcons;
-    }
-
-    return allIcons.filter(([iconName]) =>
-      iconName.toLowerCase().includes(search)
-    );
-  }, [iconSearch]);
-
+  // --------------------------------------------------
+  // Load categories
+  // --------------------------------------------------
   const loadCategories = async () => {
     try {
-      setLoading(true);
-      setError("");
-
       const response = await fetch("/api/categories", {
-        method: "GET",
         cache: "no-store",
       });
 
@@ -70,7 +62,7 @@ export default function AdminCategoriesPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to load categories."
+          data.message || "Failed to load categories"
         );
       }
 
@@ -79,132 +71,301 @@ export default function AdminCategoriesPage() {
           ? data.categories
           : []
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("Categories error:", err);
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load categories."
+        err.message || "Failed to load categories."
       );
-    } finally {
-      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
-
-  const resetForm = () => {
-    setName("");
-    setDescription("");
-    setSelectedIcon("BookOpen");
-    setEditingId(null);
-    setIconSearch("");
-    setShowIconLibrary(false);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    setMessage("");
-    setError("");
-
-    const cleanName = name.trim();
-    const cleanDescription = description.trim();
-
-    if (!cleanName) {
-      setError("Category name is required.");
-      return;
-    }
-
-    if (!cleanDescription) {
-      setError("Category description is required.");
-      return;
-    }
-
-    if (!selectedIcon) {
-      setError("Please select an icon.");
-      return;
-    }
-
+  // --------------------------------------------------
+  // Load books
+  // --------------------------------------------------
+  const loadBooks = async () => {
     try {
-      const response = await fetch("/api/categories", {
-        method: editingId ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(
-          editingId
-            ? {
-                id: editingId,
-                name: cleanName,
-                description: cleanDescription,
-                icon: selectedIcon,
-              }
-            : {
-                name: cleanName,
-                description: cleanDescription,
-                icon: selectedIcon,
-              }
-        ),
+      const response = await fetch("/api/books", {
+        cache: "no-store",
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.message ||
-            (editingId
-              ? "Failed to update category."
-              : "Failed to create category.")
+          data.message || "Failed to load books"
         );
       }
 
-      setMessage(
-        editingId
-          ? "Category updated successfully."
-          : "Category added successfully."
-      );
+      /*
+       * /api/books returns DynamoDB AttributeValue objects.
+       *
+       * Example:
+       * {
+       *   title: { S: "The Little Prince" },
+       *   category: { S: "Novels" }
+       * }
+       */
 
-      resetForm();
-      await loadCategories();
-    } catch (err) {
-      console.error("Save category error:", err);
+      setBooks(
+        Array.isArray(data.books)
+          ? data.books
+          : []
+      );
+    } catch (err: any) {
+      console.error("Books error:", err);
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Something went wrong."
+        err.message || "Failed to load books."
       );
     }
   };
 
-  const handleEdit = (category: Category) => {
-    setEditingId(category.id);
-    setName(category.name);
-    setDescription(category.description || "");
-    setSelectedIcon(category.icon || "BookOpen");
+  // --------------------------------------------------
+  // Load everything
+  // --------------------------------------------------
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-    setMessage("");
-    setError("");
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+      await Promise.all([
+        loadCategories(),
+        loadBooks(),
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
+  useEffect(() => {
+    loadData();
+  }, []);
 
-    setMessage("");
+  // --------------------------------------------------
+  // Get book category from DynamoDB AttributeValue
+  // --------------------------------------------------
+  const getBookCategory = (book: Book) => {
+    return String(book.category?.S || "")
+      .trim()
+      .toLowerCase();
+  };
+
+  // --------------------------------------------------
+  // Count books in category
+  // --------------------------------------------------
+  const getBookCount = (categoryName: string) => {
+    const normalizedCategory = categoryName
+      .trim()
+      .toLowerCase();
+
+    return books.filter((book) => {
+      return (
+        getBookCategory(book) ===
+        normalizedCategory
+      );
+    }).length;
+  };
+
+  // --------------------------------------------------
+  // Filter categories
+  // --------------------------------------------------
+  const filteredCategories = useMemo(() => {
+    const value = search.trim().toLowerCase();
+
+    if (!value) {
+      return categories;
+    }
+
+    return categories.filter((category) =>
+      category.name.toLowerCase().includes(value)
+    );
+  }, [categories, search]);
+
+  // --------------------------------------------------
+  // Open add form
+  // --------------------------------------------------
+  const openAddForm = () => {
+    setEditingCategory(null);
+
+    setName("");
+    setDescription("");
+    setIcon("");
+
     setError("");
+    setSuccess("");
+
+    setShowAddForm(true);
+  };
+
+  // --------------------------------------------------
+  // Open edit form
+  // --------------------------------------------------
+  const openEditForm = (category: Category) => {
+    setEditingCategory(category);
+
+    setName(category.name);
+    setDescription(category.description || "");
+    setIcon(category.icon || "");
+
+    setError("");
+    setSuccess("");
+
+    setShowAddForm(true);
+  };
+
+  // --------------------------------------------------
+  // Close form
+  // --------------------------------------------------
+  const closeForm = () => {
+    setShowAddForm(false);
+
+    setEditingCategory(null);
+
+    setName("");
+    setDescription("");
+    setIcon("");
+
+    setError("");
+  };
+
+  // --------------------------------------------------
+  // Submit category
+  // --------------------------------------------------
+  const handleSubmit = async (
+    e: FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      setError("Category name is required.");
+      return;
+    }
 
     try {
+      setSaving(true);
+      setError("");
+      setSuccess("");
+
+      // ----------------------------------------------
+      // EDIT
+      // ----------------------------------------------
+      if (editingCategory) {
+        const response = await fetch(
+          "/api/categories",
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              id: editingCategory.id,
+              name: trimmedName,
+              description: description.trim(),
+              icon: icon.trim(),
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              data.error ||
+              "Failed to update category."
+          );
+        }
+
+        setSuccess(
+          "Category updated successfully."
+        );
+      }
+
+      // ----------------------------------------------
+      // ADD
+      // ----------------------------------------------
+      else {
+        const response = await fetch(
+          "/api/categories",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: trimmedName,
+              description: description.trim(),
+              icon: icon.trim(),
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message ||
+              data.error ||
+              "Failed to add category."
+          );
+        }
+
+        setSuccess(
+          "Category added successfully."
+        );
+      }
+
+      closeForm();
+
+      await loadData();
+    } catch (err: any) {
+      console.error("Save category error:", err);
+
+      setError(
+        err.message || "Something went wrong."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // Delete category
+  // --------------------------------------------------
+  const handleDelete = async (
+    category: Category
+  ) => {
+    const bookCount = getBookCount(category.name);
+
+    if (bookCount > 0) {
+      alert(
+        `Cannot delete "${category.name}" because it contains ${bookCount} book${
+          bookCount > 1 ? "s" : ""
+        }.`
+      );
+
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${category.name}"?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError("");
+      setSuccess("");
+
       const response = await fetch(
-        `/api/categories?id=${encodeURIComponent(deleteId)}`,
+        `/api/categories?id=${encodeURIComponent(
+          category.id
+        )}`,
         {
           method: "DELETE",
         }
@@ -214,110 +375,88 @@ export default function AdminCategoriesPage() {
 
       if (!response.ok) {
         throw new Error(
-          data.message || "Failed to delete category."
+          data.message ||
+            data.error ||
+            "Failed to delete category."
         );
       }
 
-      setMessage("Category deleted successfully.");
-      setDeleteId(null);
+      setSuccess(
+        "Category deleted successfully."
+      );
 
       await loadCategories();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Delete category error:", err);
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to delete category."
+        err.message ||
+          "Failed to delete category."
       );
-
-      setDeleteId(null);
     }
   };
 
-  const getIcon = (iconName?: string): LucideIcon => {
-    if (!iconName) {
-      return LucideIcons.BookOpen;
-    }
-
-    const icon =
-      LucideIcons[
-        iconName as keyof typeof LucideIcons
-      ];
-
-    if (
-      typeof icon === "function" ||
-      (typeof icon === "object" && icon !== null)
-    ) {
-      return icon as LucideIcon;
-    }
-
-    return LucideIcons.BookOpen;
-  };
-
-  const SelectedIcon = getIcon(selectedIcon);
-
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
   return (
-    <div className="min-h-screen bg-[#F8F4EC] px-4 py-8 text-[#071A33] md:px-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-[#F8F4EC] p-6 md:p-8">
+      {/* Header */}
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-[#071A33]">
+            Categories
+          </h1>
 
-        {/* Header */}
-        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">
-              Categories
-            </h1>
-
-            <p className="mt-1 text-sm text-gray-600">
-              Manage your bookstore categories.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={loadCategories}
-            className="rounded-lg border border-[#071A33]/20 bg-white px-4 py-2 text-sm font-medium transition hover:bg-gray-50"
-          >
-            Refresh
-          </button>
+          <p className="mt-1 text-sm text-gray-600">
+            Manage your book categories
+          </p>
         </div>
 
-        {/* Messages */}
-        {message && (
-          <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {message}
-          </div>
-        )}
+        <button
+          type="button"
+          onClick={openAddForm}
+          className="flex items-center justify-center gap-2 rounded-lg bg-[#071A33] px-5 py-3 font-medium text-white transition hover:bg-[#102746]"
+        >
+          <Plus size={18} />
+          Add Category
+        </button>
+      </div>
 
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+      {/* Add / Edit Form */}
+      {showAddForm && (
+        <div className="mb-8 rounded-xl bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-[#071A33]">
+                {editingCategory
+                  ? "Edit Category"
+                  : "Add Category"}
+              </h2>
 
-        {/* Add / Edit Form */}
-        <div className="mb-10 rounded-2xl bg-white p-6 shadow-sm">
-          <div className="mb-6">
-            <h2 className="text-xl font-bold">
-              {editingId
-                ? "Edit Category"
-                : "Add Category"}
-            </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {editingCategory
+                  ? "Update the category information."
+                  : "Create a new book category."}
+              </p>
+            </div>
 
-            <p className="mt-1 text-sm text-gray-500">
-              {editingId
-                ? "Update the category information."
-                : "Create a new bookstore category."}
-            </p>
+            <button
+              type="button"
+              onClick={closeForm}
+              className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+            >
+              <X size={20} />
+            </button>
           </div>
 
           <form
             onSubmit={handleSubmit}
-            className="space-y-6"
+            className="grid grid-cols-1 gap-5 md:grid-cols-3"
           >
             {/* Name */}
             <div>
-              <label className="mb-2 block text-sm font-semibold">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Category Name
               </label>
 
@@ -327,322 +466,206 @@ export default function AdminCategoriesPage() {
                 onChange={(e) =>
                   setName(e.target.value)
                 }
-                placeholder="Example: History"
-                className="w-full rounded-lg border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                placeholder="e.g. History"
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#B8892D]"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="mb-2 block text-sm font-semibold">
+              <label className="mb-2 block text-sm font-medium text-gray-700">
                 Description
               </label>
 
-              <textarea
+              <input
+                type="text"
                 value={description}
                 onChange={(e) =>
                   setDescription(e.target.value)
                 }
-                placeholder="Example: Books about historical events, civilizations and important figures."
-                rows={4}
-                className="w-full resize-none rounded-lg border border-gray-200 px-4 py-3 outline-none transition focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
+                placeholder="Category description"
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#B8892D]"
               />
             </div>
 
             {/* Icon */}
             <div>
-              <label className="mb-2 block text-sm font-semibold">
-                Category Icon
+              <label className="mb-2 block text-sm font-medium text-gray-700">
+                Icon
               </label>
 
-              <button
-                type="button"
-                onClick={() =>
-                  setShowIconLibrary(!showIconLibrary)
+              <input
+                type="text"
+                value={icon}
+                onChange={(e) =>
+                  setIcon(e.target.value)
                 }
-                className="flex w-full items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 transition hover:border-[#E8B04A]"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#071A33] text-[#E8B04A]">
-                    <SelectedIcon size={24} />
-                  </div>
-
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">
-                      {selectedIcon}
-                    </p>
-
-                    <p className="text-xs text-gray-500">
-                      Click to choose an icon
-                    </p>
-                  </div>
-                </div>
-
-                <span className="text-sm text-gray-500">
-                  {showIconLibrary
-                    ? "Hide"
-                    : "Browse"}
-                </span>
-              </button>
-
-              {/* Icon Library */}
-              {showIconLibrary && (
-                <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                  {/* Search */}
-                  <div className="mb-4">
-                    <input
-                      type="text"
-                      value={iconSearch}
-                      onChange={(e) =>
-                        setIconSearch(e.target.value)
-                      }
-                      placeholder="Search icons... Example: book, heart, home, user"
-                      className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#E8B04A] focus:ring-2 focus:ring-[#E8B04A]/20"
-                    />
-                  </div>
-
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-sm text-gray-600">
-                      {filteredIcons.length} icons available
-                    </p>
-
-                    {iconSearch && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setIconSearch("")
-                        }
-                        className="text-xs font-medium text-[#B8892D] hover:underline"
-                      >
-                        Clear search
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Icons Grid */}
-                  <div className="max-h-[420px] overflow-y-auto rounded-lg bg-white p-3">
-                    <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12">
-                      {filteredIcons.map(
-                        ([iconName, IconComponent]) => (
-                          <button
-                            key={iconName}
-                            type="button"
-                            title={iconName}
-                            onClick={() => {
-                              setSelectedIcon(
-                                iconName
-                              );
-                              setShowIconLibrary(false);
-                            }}
-                            className={`group flex aspect-square flex-col items-center justify-center rounded-lg border p-2 transition ${
-                              selectedIcon === iconName
-                                ? "border-[#E8B04A] bg-[#E8B04A]/15 text-[#071A33]"
-                                : "border-gray-100 bg-white hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
-                            }`}
-                          >
-                            <IconComponent
-                              size={22}
-                              strokeWidth={1.8}
-                            />
-
-                            <span className="mt-1 w-full truncate text-center text-[9px] text-gray-500 group-hover:text-[#071A33]">
-                              {iconName}
-                            </span>
-                          </button>
-                        )
-                      )}
-                    </div>
-
-                    {filteredIcons.length === 0 && (
-                      <div className="py-12 text-center text-sm text-gray-500">
-                        No icons found.
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                placeholder="Optional icon"
+                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#B8892D]"
+              />
             </div>
 
             {/* Buttons */}
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex items-end gap-3 md:col-span-3">
               <button
                 type="submit"
-                className="rounded-lg bg-[#071A33] px-6 py-3 font-semibold text-white transition hover:bg-[#10294A]"
+                disabled={saving}
+                className="rounded-lg bg-[#071A33] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#102746] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {editingId
-                  ? "Update Category"
+                {saving
+                  ? "Saving..."
+                  : editingCategory
+                  ? "Save Changes"
                   : "Add Category"}
               </button>
 
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-lg border border-gray-200 bg-white px-6 py-3 font-semibold text-[#071A33] transition hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
-
-        {/* Categories */}
-        <div>
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold">
-                All Categories
-              </h2>
-
-              <p className="text-sm text-gray-500">
-                {categories.length} categories
-              </p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="rounded-2xl bg-white py-16 text-center shadow-sm">
-              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#071A33]" />
-
-              <p className="text-sm text-gray-500">
-                Loading categories...
-              </p>
-            </div>
-          ) : categories.length === 0 ? (
-            <div className="rounded-2xl bg-white py-16 text-center shadow-sm">
-              <LucideIcons.FolderOpen
-                size={45}
-                className="mx-auto mb-4 text-gray-400"
-              />
-
-              <h3 className="font-semibold">
-                No categories found
-              </h3>
-
-              <p className="mt-1 text-sm text-gray-500">
-                Add your first category above.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {categories.map((category) => {
-                const CategoryIcon = getIcon(
-                  category.icon
-                );
-
-                return (
-                  <div
-                    key={category.id}
-                    className="group rounded-2xl bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-                  >
-                    {/* Top */}
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[#071A33] text-[#E8B04A]">
-                        <CategoryIcon size={28} />
-                      </div>
-
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-gray-500">
-                        {category.id}
-                      </span>
-                    </div>
-
-                    {/* Content */}
-                    <div className="mt-5">
-                      <h3 className="text-lg font-bold">
-                        {category.name}
-                      </h3>
-
-                      <p className="mt-2 min-h-[48px] text-sm leading-6 text-gray-500">
-                        {category.description ||
-                          "No description available."}
-                      </p>
-
-                      <div className="mt-4 flex items-center gap-2 text-xs text-gray-400">
-                        <LucideIcons.Tag size={14} />
-
-                        <span>
-                          {category.icon ||
-                            "BookOpen"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="mt-5 flex gap-2 border-t border-gray-100 pt-4">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleEdit(category)
-                        }
-                        className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#071A33]/15 px-4 py-2.5 text-sm font-medium transition hover:bg-[#F8F4EC]"
-                      >
-                        <LucideIcons.Pencil
-                          size={16}
-                        />
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDeleteId(category.id)
-                        }
-                        className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
-                      >
-                        <LucideIcons.Trash2
-                          size={16}
-                        />
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-100 text-red-600">
-              <LucideIcons.TriangleAlert
-                size={28}
-              />
-            </div>
-
-            <h2 className="mt-5 text-center text-xl font-bold text-[#071A33]">
-              Delete Category?
-            </h2>
-
-            <p className="mt-2 text-center text-sm leading-6 text-gray-500">
-              Are you sure you want to delete this
-              category? This action cannot be undone.
-            </p>
-
-            <div className="mt-6 flex gap-3">
               <button
                 type="button"
-                onClick={() => setDeleteId(null)}
-                className="flex-1 rounded-lg border border-gray-200 px-4 py-3 font-medium transition hover:bg-gray-50"
+                onClick={closeForm}
+                className="rounded-lg border border-gray-200 px-6 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
               >
                 Cancel
               </button>
-
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-3 font-medium text-white transition hover:bg-red-700"
-              >
-                Delete
-              </button>
             </div>
-          </div>
+          </form>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {/* Success */}
+      {success && (
+        <div className="mb-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {success}
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+
+          <input
+            type="text"
+            placeholder="Search categories..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+            className="w-full rounded-lg border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-[#B8892D]"
+          />
+        </div>
+      </div>
+
+      {/* Loading */}
+      {loading ? (
+        <div className="rounded-xl bg-white p-10 text-center text-gray-500 shadow-sm">
+          Loading categories...
+        </div>
+      ) : filteredCategories.length === 0 ? (
+        <div className="rounded-xl bg-white p-10 text-center shadow-sm">
+          <BookOpen
+            size={42}
+            className="mx-auto mb-3 text-gray-300"
+          />
+
+          <p className="font-medium text-[#071A33]">
+            No categories found
+          </p>
+
+          <p className="mt-1 text-sm text-gray-500">
+            Add your first category to get started.
+          </p>
+        </div>
+      ) : (
+        /* Category cards */
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredCategories.map((category) => {
+            const bookCount = getBookCount(
+              category.name
+            );
+
+            return (
+              <div
+                key={category.id}
+                className="rounded-xl bg-white p-5 shadow-sm transition hover:shadow-md"
+              >
+                {/* Card top */}
+                <div className="mb-5 flex items-center justify-between">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#F8F4EC]">
+                    <BookOpen
+                      size={24}
+                      className="text-[#B8892D]"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    {/* Edit */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openEditForm(category)
+                      }
+                      className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-[#071A33]"
+                      title="Edit category"
+                    >
+                      <Pencil size={17} />
+                    </button>
+
+                    {/* Delete */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleDelete(category)
+                      }
+                      className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+                      title="Delete category"
+                    >
+                      <Trash2 size={17} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Name */}
+                <h2 className="text-lg font-semibold text-[#071A33]">
+                  {category.name}
+                </h2>
+
+                {/* Description */}
+                {category.description && (
+                  <p className="mt-2 line-clamp-2 text-sm text-gray-500">
+                    {category.description}
+                  </p>
+                )}
+
+                {/* Book count */}
+                <div className="mt-4 flex items-center gap-2">
+                  <BookOpen
+                    size={16}
+                    className="text-[#B8892D]"
+                  />
+
+                  <span className="text-sm font-medium text-gray-600">
+                    {bookCount}{" "}
+                    {bookCount === 1
+                      ? "book"
+                      : "books"}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
+

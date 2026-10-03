@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -15,7 +16,15 @@ export default function Navbar() {
 
   const { wishlist } = useWishlist();
   const { cart } = useCart();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+
+  /*
+   * IMPORTANT:
+   * An admin can be authenticated globally, but must NOT
+   * be treated as a client on the client-side interface.
+   */
+  const isClientAuthenticated =
+    isAuthenticated && !isAdmin;
 
   const cartCount = cart.reduce(
     (total, item) => total + item.quantity,
@@ -43,7 +52,8 @@ export default function Navbar() {
   const closeMobileMenu = (
     event: React.MouseEvent<HTMLAnchorElement>
   ) => {
-    const details = event.currentTarget.closest("details");
+    const details =
+      event.currentTarget.closest("details");
 
     if (details) {
       details.removeAttribute("open");
@@ -53,7 +63,8 @@ export default function Navbar() {
   const handleMobileLogout = (
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
-    const details = event.currentTarget.closest("details");
+    const details =
+      event.currentTarget.closest("details");
 
     if (details) {
       details.removeAttribute("open");
@@ -73,10 +84,15 @@ export default function Navbar() {
           href="/"
           className="flex shrink-0 items-center gap-2 text-lg font-bold sm:text-xl"
         >
-          <span className="text-xl sm:text-2xl">📖</span>
+          <span className="text-xl sm:text-2xl">
+            📖
+          </span>
 
           <span>
-            Book<span className="text-[#E8B04A]">Store</span>
+            Book
+            <span className="text-[#E8B04A]">
+              Store
+            </span>
           </span>
         </Link>
 
@@ -106,7 +122,8 @@ export default function Navbar() {
                 Categories
               </Link>
 
-              {isAuthenticated && (
+              {/* Only clients can see My Orders */}
+              {isClientAuthenticated && (
                 <Link
                   href="/orders"
                   className="transition hover:text-[#E8B04A]"
@@ -131,7 +148,9 @@ export default function Navbar() {
               <input
                 type="text"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
                 placeholder="Search books or authors..."
                 autoFocus
                 className="flex-1 px-5 py-2.5 text-[#071A33] outline-none"
@@ -153,7 +172,9 @@ export default function Navbar() {
           {/* Search */}
           <button
             type="button"
-            onClick={() => setSearchOpen(!searchOpen)}
+            onClick={() =>
+              setSearchOpen(!searchOpen)
+            }
             className="text-lg transition hover:text-[#E8B04A]"
           >
             {searchOpen ? "✕" : "🔍"}
@@ -175,11 +196,11 @@ export default function Navbar() {
             🛒 {cartCount}
           </Link>
 
-          {/* Authentication */}
-          {isAuthenticated ? (
+          {/* CLIENT AUTHENTICATION */}
+          {isClientAuthenticated ? (
             <div className="flex items-center gap-3">
 
-              {/* Profile */}
+              {/* Client Profile */}
               <Link
                 href="/profile"
                 className="max-w-[150px] truncate font-semibold transition hover:text-[#E8B04A]"
@@ -187,7 +208,7 @@ export default function Navbar() {
                 👤 {user?.name}
               </Link>
 
-              {/* Sign Out */}
+              {/* Client Sign Out */}
               <button
                 type="button"
                 onClick={handleLogout}
@@ -198,6 +219,13 @@ export default function Navbar() {
 
             </div>
           ) : (
+            /*
+             * This includes:
+             * - nobody logged in
+             * - an admin logged in
+             *
+             * In both cases, the CLIENT navbar shows Sign In.
+             */
             <Link
               href="/signin"
               className="rounded-md bg-[#E8B04A] px-5 py-2 font-semibold text-[#071A33]"
@@ -243,7 +271,9 @@ export default function Navbar() {
                 <input
                   type="text"
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) =>
+                    setSearch(event.target.value)
+                  }
                   placeholder="Search books..."
                   className="min-w-0 flex-1 px-4 py-2 text-[#071A33] outline-none"
                 />
@@ -283,7 +313,8 @@ export default function Navbar() {
                   Categories
                 </Link>
 
-                {isAuthenticated && (
+                {/* Only clients see My Orders */}
+                {isClientAuthenticated && (
                   <Link
                     href="/orders"
                     onClick={closeMobileMenu}
@@ -293,8 +324,8 @@ export default function Navbar() {
                   </Link>
                 )}
 
-                {/* Mobile Profile */}
-                {isAuthenticated && (
+                {/* Only clients see Profile */}
+                {isClientAuthenticated && (
                   <Link
                     href="/profile"
                     onClick={closeMobileMenu}
@@ -331,9 +362,10 @@ export default function Navbar() {
                 {/* User Section */}
                 <div className="border-t border-white/10 pt-4">
 
-                  {isAuthenticated ? (
+                  {isClientAuthenticated ? (
                     <div className="flex flex-col gap-3">
 
+                      {/* Client Profile */}
                       <Link
                         href="/profile"
                         onClick={closeMobileMenu}
@@ -342,6 +374,7 @@ export default function Navbar() {
                         👤 {user?.name}
                       </Link>
 
+                      {/* Client Sign Out */}
                       <button
                         type="button"
                         onClick={handleMobileLogout}
@@ -352,6 +385,10 @@ export default function Navbar() {
 
                     </div>
                   ) : (
+                    /*
+                     * Nobody logged in OR admin logged in:
+                     * show client Sign In only.
+                     */
                     <Link
                       href="/signin"
                       onClick={closeMobileMenu}
@@ -371,3 +408,4 @@ export default function Navbar() {
     </nav>
   );
 }
+
