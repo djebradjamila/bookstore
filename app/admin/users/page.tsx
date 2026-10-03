@@ -13,6 +13,8 @@ import {
   Phone,
   MapPin,
   ShoppingBag,
+  Pencil,
+  Lock,
 } from "lucide-react";
 
 type UserData = {
@@ -22,32 +24,80 @@ type UserData = {
   name?: string;
   phone?: string;
   address?: string;
+  role?: string;
+  username?: string;
   createdAt?: string;
   orderCount?: number;
+};
+
+type UserForm = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone: string;
+  address: string;
 };
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+
   const [deletingEmail, setDeletingEmail] =
     useState<string | null>(null);
+
   const [selectedUser, setSelectedUser] =
     useState<UserData | null>(null);
 
-  // Load users
+  const [showEditForm, setShowEditForm] =
+    useState(false);
+
+  const [editingUser, setEditingUser] =
+    useState<UserData | null>(null);
+
+  const [form, setForm] = useState<UserForm>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    phone: "",
+    address: "",
+  });
+
+  const [saving, setSaving] = useState(false);
+
+  /* -------------------------------------------------------
+     Load users
+  ------------------------------------------------------- */
   const loadUsers = async () => {
     try {
       setLoading(true);
 
-      const response = await fetch("/api/admin/users");
+      const response = await fetch(
+        "/api/admin/users",
+        {
+          cache: "no-store",
+        }
+      );
+
       const data = await response.json();
 
       if (data.success) {
         setUsers(data.users || []);
+      } else {
+        alert(
+          data.message ||
+            "Failed to load users."
+        );
       }
     } catch (error) {
-      console.error("Failed to load users:", error);
+      console.error(
+        "Failed to load users:",
+        error
+      );
+
+      alert("Failed to load users.");
     } finally {
       setLoading(false);
     }
@@ -57,84 +107,305 @@ export default function AdminUsersPage() {
     loadUsers();
   }, []);
 
-  // Delete user
-  const handleDelete = async (email: string) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this user?"
-    );
+  /* -------------------------------------------------------
+     Open edit form
+  ------------------------------------------------------- */
+  const openEditForm = (user: UserData) => {
+    setSelectedUser(null);
+
+    setEditingUser(user);
+
+    setForm({
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      email: user.email || "",
+      password: "",
+      phone: user.phone || "",
+      address: user.address || "",
+    });
+
+    setShowEditForm(true);
+  };
+
+  /* -------------------------------------------------------
+     Close edit form
+  ------------------------------------------------------- */
+  const closeEditForm = () => {
+    if (saving) return;
+
+    setShowEditForm(false);
+    setEditingUser(null);
+
+    setForm({
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      phone: "",
+      address: "",
+    });
+  };
+
+  /* -------------------------------------------------------
+     Handle form changes
+  ------------------------------------------------------- */
+  const handleChange = (
+    field: keyof UserForm,
+    value: string
+  ) => {
+    setForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  /* -------------------------------------------------------
+     Update user
+  ------------------------------------------------------- */
+  const handleSubmit = async (
+    event: React.FormEvent
+  ) => {
+    event.preventDefault();
+
+    if (!editingUser) return;
+
+    if (!form.firstName.trim()) {
+      alert("First name is required.");
+      return;
+    }
+
+    if (!form.lastName.trim()) {
+      alert("Last name is required.");
+      return;
+    }
+
+    if (!form.email.trim()) {
+      alert("Email is required.");
+      return;
+    }
+
+    if (!form.email.includes("@")) {
+      alert("Please enter a valid email.");
+      return;
+    }
+
+    if (
+      form.password &&
+      form.password.length < 6
+    ) {
+      alert(
+        "Password must contain at least 6 characters."
+      );
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const response = await fetch(
+        "/api/admin/users",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            originalEmail:
+              editingUser.email,
+
+            firstName:
+              form.firstName,
+
+            lastName:
+              form.lastName,
+
+            email:
+              form.email,
+
+            password:
+              form.password,
+
+            phone:
+              form.phone,
+
+            address:
+              form.address,
+
+            // Always keep this account as user.
+            role: "user",
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!data.success) {
+        alert(
+          data.message ||
+            "Failed to update user."
+        );
+        return;
+      }
+
+      alert(
+        "User updated successfully."
+      );
+
+      closeEditForm();
+
+      await loadUsers();
+    } catch (error) {
+      console.error(
+        "Update user error:",
+        error
+      );
+
+      alert("Failed to update user.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* -------------------------------------------------------
+     Delete user
+  ------------------------------------------------------- */
+  const handleDelete = async (
+    email: string
+  ) => {
+    const confirmed =
+      window.confirm(
+        "Are you sure you want to delete this user?"
+      );
 
     if (!confirmed) return;
 
     try {
       setDeletingEmail(email);
 
-      const response = await fetch("/api/admin/users", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setUsers((prev) =>
-          prev.filter((user) => user.email !== email)
-        );
-
-        if (selectedUser?.email === email) {
-          setSelectedUser(null);
+      const response = await fetch(
+        "/api/admin/users",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            email,
+          }),
         }
-      } else {
-        alert(data.message || "Failed to delete user.");
+      );
+
+      const data =
+        await response.json();
+
+      if (!data.success) {
+        alert(
+          data.message ||
+            "Failed to delete user."
+        );
+        return;
       }
+
+      setUsers((previous) =>
+        previous.filter(
+          (user) =>
+            user.email !== email
+        )
+      );
+
+      if (
+        selectedUser?.email === email
+      ) {
+        setSelectedUser(null);
+      }
+
+      alert(
+        "User deleted successfully."
+      );
     } catch (error) {
-      console.error("Delete user error:", error);
+      console.error(
+        "Delete user error:",
+        error
+      );
+
       alert("Failed to delete user.");
     } finally {
       setDeletingEmail(null);
     }
   };
 
-  // Search users
-  const filteredUsers = users.filter((user) => {
-    const value = search.toLowerCase();
+  /* -------------------------------------------------------
+     Search users
+  ------------------------------------------------------- */
+  const filteredUsers =
+    users.filter((user) => {
+      const value =
+        search.toLowerCase().trim();
 
-    return (
-      user.email.toLowerCase().includes(value) ||
-      (user.name || "").toLowerCase().includes(value) ||
-      (user.firstName || "").toLowerCase().includes(value) ||
-      (user.lastName || "").toLowerCase().includes(value)
-    );
-  });
+      return (
+        user.email
+          .toLowerCase()
+          .includes(value) ||
+        (user.name || "")
+          .toLowerCase()
+          .includes(value) ||
+        (user.firstName || "")
+          .toLowerCase()
+          .includes(value) ||
+        (user.lastName || "")
+          .toLowerCase()
+          .includes(value)
+      );
+    });
 
-  // Format date
-  const formatDate = (date?: string) => {
+  /* -------------------------------------------------------
+     Format date
+  ------------------------------------------------------- */
+  const formatDate = (
+    date?: string
+  ) => {
     if (!date) return "N/A";
 
-    const parsedDate = new Date(date);
+    const parsedDate =
+      new Date(date);
 
-    if (Number.isNaN(parsedDate.getTime())) {
+    if (
+      Number.isNaN(
+        parsedDate.getTime()
+      )
+    ) {
       return date;
     }
 
-    return parsedDate.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return parsedDate.toLocaleDateString(
+      "en-US",
+      {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }
+    );
   };
 
-  // Display name
-  const getDisplayName = (user: UserData) => {
-    const fullName = `${user.firstName || ""} ${
-      user.lastName || ""
-    }`.trim();
+  /* -------------------------------------------------------
+     Display name
+  ------------------------------------------------------- */
+  const getDisplayName = (
+    user: UserData
+  ) => {
+    const fullName =
+      `${user.firstName || ""} ${
+        user.lastName || ""
+      }`.trim();
 
-    if (fullName) return fullName;
+    if (fullName) {
+      return fullName;
+    }
 
-    if (user.name) return user.name;
+    if (user.name) {
+      return user.name;
+    }
 
     return "User";
   };
@@ -145,18 +416,21 @@ export default function AdminUsersPage() {
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#071A33] sm:text-3xl">
-            Users
-          </h1>
+          <div>
+            <h1 className="text-2xl font-bold text-[#071A33] sm:text-3xl">
+              Users
+            </h1>
 
-          <p className="mt-1 text-sm text-gray-500">
-            Manage registered users
-          </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Manage registered users
+            </p>
+          </div>
         </div>
 
         {/* Stats */}
         <div className="mb-6 rounded-2xl bg-white p-5 shadow-sm">
           <div className="flex items-center gap-4">
+
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#E8B04A]/15">
               <Users
                 className="text-[#B8892D]"
@@ -173,12 +447,14 @@ export default function AdminUsersPage() {
                 {users.length}
               </p>
             </div>
+
           </div>
         </div>
 
         {/* Search */}
         <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm">
           <div className="relative">
+
             <Search
               size={19}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -188,20 +464,25 @@ export default function AdminUsersPage() {
               type="text"
               placeholder="Search users..."
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
+              onChange={(event) =>
+                setSearch(
+                  event.target.value
+                )
               }
               className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-[#E8B04A]"
             />
+
           </div>
         </div>
 
-        {/* Users */}
+        {/* Users table */}
         <div className="rounded-2xl bg-white shadow-sm">
 
-          {/* Desktop table */}
+          {/* Desktop */}
           <div className="hidden overflow-x-auto md:block">
+
             <table className="w-full">
+
               <thead>
                 <tr className="border-b border-gray-100 text-left">
 
@@ -211,6 +492,10 @@ export default function AdminUsersPage() {
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-gray-500">
                     Email
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-semibold uppercase text-gray-500">
+                    Orders
                   </th>
 
                   <th className="px-6 py-4 text-xs font-semibold uppercase text-gray-500">
@@ -225,10 +510,11 @@ export default function AdminUsersPage() {
               </thead>
 
               <tbody>
+
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-6 py-10 text-center text-sm text-gray-500"
                     >
                       Loading users...
@@ -237,96 +523,157 @@ export default function AdminUsersPage() {
                 ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={4}
+                      colSpan={5}
                       className="px-6 py-10 text-center text-sm text-gray-500"
                     >
                       No users found.
                     </td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user) => (
-                    <tr
-                      key={user.email}
-                      className="border-b border-gray-100 last:border-0"
-                    >
-                      {/* User */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                  filteredUsers.map(
+                    (user) => (
+                      <tr
+                        key={user.email}
+                        className="border-b border-gray-100 last:border-0"
+                      >
 
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#071A33] text-white">
-                            <User size={18} />
+                        {/* User */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#071A33] text-white">
+                              <User size={18} />
+                            </div>
+
+                            <div>
+                              <p className="font-medium text-[#071A33]">
+                                {getDisplayName(
+                                  user
+                                )}
+                              </p>
+
+                              <p className="text-xs text-gray-400">
+                                Customer
+                              </p>
+                            </div>
+
+                          </div>
+                        </td>
+
+                        {/* Email */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+
+                            <Mail size={15} />
+
+                            {user.email}
+
+                          </div>
+                        </td>
+
+                        {/* Orders */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+
+                            <ShoppingBag
+                              size={15}
+                            />
+
+                            {user.orderCount ??
+                              0}
+
+                          </div>
+                        </td>
+
+                        {/* Date */}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+
+                            <Calendar
+                              size={15}
+                            />
+
+                            {formatDate(
+                              user.createdAt
+                            )}
+
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-6 py-4">
+
+                          <div className="flex justify-end gap-2">
+
+                            {/* View */}
+                            <button
+                              onClick={() =>
+                                setSelectedUser(
+                                  user
+                                )
+                              }
+                              className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#071A33] transition hover:bg-gray-50"
+                            >
+                              <Eye size={16} />
+                              View
+                            </button>
+
+                            {/* Edit */}
+                            <button
+                              onClick={() =>
+                                openEditForm(
+                                  user
+                                )
+                              }
+                              className="flex items-center gap-1.5 rounded-lg bg-[#E8B04A]/15 px-3 py-2 text-sm text-[#8A641E] transition hover:bg-[#E8B04A]/25"
+                            >
+                              <Pencil
+                                size={16}
+                              />
+                              Edit
+                            </button>
+
+                            {/* Delete */}
+                            <button
+                              onClick={() =>
+                                handleDelete(
+                                  user.email
+                                )
+                              }
+                              disabled={
+                                deletingEmail ===
+                                user.email
+                              }
+                              className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <Trash2
+                                size={16}
+                              />
+
+                              {deletingEmail ===
+                              user.email
+                                ? "Deleting..."
+                                : "Delete"}
+                            </button>
+
                           </div>
 
-                          <div>
-                            <p className="font-medium text-[#071A33]">
-                              {getDisplayName(user)}
-                            </p>
+                        </td>
 
-                            <p className="text-xs text-gray-400">
-                              Customer
-                            </p>
-                          </div>
-
-                        </div>
-                      </td>
-
-                      {/* Email */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Mail size={15} />
-                          {user.email}
-                        </div>
-                      </td>
-
-                      {/* Date */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Calendar size={15} />
-                          {formatDate(user.createdAt)}
-                        </div>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-6 py-4">
-                        <div className="flex justify-end gap-2">
-
-                          <button
-                            onClick={() =>
-                              setSelectedUser(user)
-                            }
-                            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm text-[#071A33] transition hover:bg-gray-50"
-                          >
-                            <Eye size={16} />
-                            View
-                          </button>
-
-                          <button
-                            onClick={() =>
-                              handleDelete(user.email)
-                            }
-                            disabled={
-                              deletingEmail === user.email
-                            }
-                            className="flex items-center gap-1.5 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <Trash2 size={16} />
-
-                            {deletingEmail === user.email
-                              ? "Deleting..."
-                              : "Delete"}
-                          </button>
-
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                      </tr>
+                    )
+                  )
                 )}
+
               </tbody>
+
             </table>
+
           </div>
 
-          {/* Mobile cards */}
+          {/* Mobile */}
           <div className="space-y-3 p-4 md:hidden">
+
             {loading ? (
               <div className="py-8 text-center text-sm text-gray-500">
                 Loading users...
@@ -336,78 +683,114 @@ export default function AdminUsersPage() {
                 No users found.
               </div>
             ) : (
-              filteredUsers.map((user) => (
-                <div
-                  key={user.email}
-                  className="rounded-xl border border-gray-100 p-4"
-                >
-                  <div className="flex items-center gap-3">
+              filteredUsers.map(
+                (user) => (
+                  <div
+                    key={user.email}
+                    className="rounded-xl border border-gray-100 p-4"
+                  >
 
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#071A33] text-white">
-                      <User size={18} />
+                    <div className="flex items-center gap-3">
+
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#071A33] text-white">
+                        <User size={18} />
+                      </div>
+
+                      <div className="min-w-0">
+
+                        <p className="font-medium text-[#071A33]">
+                          {getDisplayName(
+                            user
+                          )}
+                        </p>
+
+                        <p className="mt-1 flex items-center gap-1 break-all text-xs text-gray-500">
+                          <Mail size={13} />
+                          {user.email}
+                        </p>
+
+                      </div>
+
                     </div>
 
-                    <div className="min-w-0">
-                      <p className="font-medium text-[#071A33]">
-                        {getDisplayName(user)}
-                      </p>
+                    <div className="mt-3 flex items-center gap-1 text-xs text-gray-500">
+                      <ShoppingBag size={13} />
+                      {user.orderCount ?? 0} orders
+                    </div>
 
-                      <p className="mt-1 flex items-center gap-1 break-all text-xs text-gray-500">
-                        <Mail size={13} />
-                        {user.email}
-                      </p>
+                    <div className="mt-1 flex items-center gap-1 text-xs text-gray-500">
+                      <Calendar size={13} />
+                      {formatDate(
+                        user.createdAt
+                      )}
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+
+                      {/* View */}
+                      <button
+                        onClick={() =>
+                          setSelectedUser(
+                            user
+                          )
+                        }
+                        className="flex items-center justify-center gap-1 rounded-lg border border-gray-200 py-2 text-sm text-[#071A33] hover:bg-gray-50"
+                      >
+                        <Eye size={15} />
+                        View
+                      </button>
+
+                      {/* Edit */}
+                      <button
+                        onClick={() =>
+                          openEditForm(
+                            user
+                          )
+                        }
+                        className="flex items-center justify-center gap-1 rounded-lg bg-[#E8B04A]/15 py-2 text-sm text-[#8A641E] hover:bg-[#E8B04A]/25"
+                      >
+                        <Pencil size={15} />
+                        Edit
+                      </button>
+
+                      {/* Delete */}
+                      <button
+                        onClick={() =>
+                          handleDelete(
+                            user.email
+                          )
+                        }
+                        disabled={
+                          deletingEmail ===
+                          user.email
+                        }
+                        className="flex items-center justify-center gap-1 rounded-lg bg-red-50 py-2 text-sm text-red-600 hover:bg-red-100 disabled:opacity-50"
+                      >
+                        <Trash2 size={15} />
+                        Delete
+                      </button>
+
                     </div>
 
                   </div>
-
-                  <div className="mt-3 flex items-center gap-1 text-xs text-gray-500">
-                    <Calendar size={13} />
-                    {formatDate(user.createdAt)}
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-
-                    <button
-                      onClick={() =>
-                        setSelectedUser(user)
-                      }
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 py-2 text-sm text-[#071A33] hover:bg-gray-50"
-                    >
-                      <Eye size={16} />
-                      View
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        handleDelete(user.email)
-                      }
-                      disabled={
-                        deletingEmail === user.email
-                      }
-                      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-50 py-2 text-sm text-red-600 hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <Trash2 size={16} />
-
-                      {deletingEmail === user.email
-                        ? "Deleting..."
-                        : "Delete"}
-                    </button>
-
-                  </div>
-                </div>
-              ))
+                )
+              )
             )}
+
           </div>
+
         </div>
       </div>
 
-      {/* User Details Modal */}
+      {/* -------------------------------------------------------
+          View User Modal
+      ------------------------------------------------------- */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+          <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-5 shadow-xl">
 
-            {/* Modal header */}
+            {/* Header */}
             <div className="mb-5 flex items-center justify-between">
 
               <div className="flex items-center gap-3">
@@ -439,35 +822,41 @@ export default function AdminUsersPage() {
 
             </div>
 
-            {/* Customer information */}
+            {/* Details */}
             <div className="space-y-4">
 
-              {/* Full Name */}
+              {/* Name */}
               <div className="flex items-start gap-3">
+
                 <User
                   size={18}
                   className="mt-0.5 shrink-0 text-[#B8892D]"
                 />
 
-                <div className="min-w-0">
+                <div>
                   <p className="text-xs text-gray-500">
                     Full Name
                   </p>
 
                   <p className="font-medium text-[#071A33]">
-                    {getDisplayName(selectedUser)}
+                    {getDisplayName(
+                      selectedUser
+                    )}
                   </p>
                 </div>
+
               </div>
 
               {/* Email */}
               <div className="flex items-start gap-3">
+
                 <Mail
                   size={18}
                   className="mt-0.5 shrink-0 text-[#B8892D]"
                 />
 
                 <div className="min-w-0">
+
                   <p className="text-xs text-gray-500">
                     Email
                   </p>
@@ -475,35 +864,44 @@ export default function AdminUsersPage() {
                   <p className="break-all font-medium text-[#071A33]">
                     {selectedUser.email}
                   </p>
+
                 </div>
+
               </div>
 
               {/* Phone */}
               <div className="flex items-start gap-3">
+
                 <Phone
                   size={18}
                   className="mt-0.5 shrink-0 text-[#B8892D]"
                 />
 
                 <div>
+
                   <p className="text-xs text-gray-500">
                     Phone
                   </p>
 
                   <p className="font-medium text-[#071A33]">
-                    {selectedUser.phone || "Not provided"}
+                    {selectedUser.phone ||
+                      "Not provided"}
                   </p>
+
                 </div>
+
               </div>
 
               {/* Address */}
               <div className="flex items-start gap-3">
+
                 <MapPin
                   size={18}
                   className="mt-0.5 shrink-0 text-[#B8892D]"
                 />
 
-                <div className="min-w-0">
+                <div>
+
                   <p className="text-xs text-gray-500">
                     Address
                   </p>
@@ -512,17 +910,21 @@ export default function AdminUsersPage() {
                     {selectedUser.address ||
                       "No address available"}
                   </p>
+
                 </div>
+
               </div>
 
               {/* Joined */}
               <div className="flex items-start gap-3">
+
                 <Calendar
                   size={18}
                   className="mt-0.5 shrink-0 text-[#B8892D]"
                 />
 
                 <div>
+
                   <p className="text-xs text-gray-500">
                     Joined
                   </p>
@@ -532,38 +934,303 @@ export default function AdminUsersPage() {
                       selectedUser.createdAt
                     )}
                   </p>
+
                 </div>
+
               </div>
 
-              {/* Total Orders */}
+              {/* Orders */}
               <div className="flex items-start gap-3">
+
                 <ShoppingBag
                   size={18}
                   className="mt-0.5 shrink-0 text-[#B8892D]"
                 />
 
                 <div>
+
                   <p className="text-xs text-gray-500">
                     Total Orders
                   </p>
 
                   <p className="font-medium text-[#071A33]">
-                    {selectedUser.orderCount ?? 0}
+                    {selectedUser.orderCount ??
+                      0}
                   </p>
+
                 </div>
+
               </div>
 
             </div>
 
-            {/* Close */}
-            <button
-              onClick={() =>
-                setSelectedUser(null)
-              }
-              className="mt-6 w-full rounded-lg bg-[#071A33] py-2.5 text-sm font-medium text-white transition hover:bg-[#102746]"
+            {/* Buttons */}
+            <div className="mt-6 flex gap-2">
+
+              <button
+                onClick={() =>
+                  openEditForm(
+                    selectedUser
+                  )
+                }
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#E8B04A] py-2.5 text-sm font-medium text-[#071A33] transition hover:bg-[#dca53f]"
+              >
+                <Pencil size={16} />
+                Edit User
+              </button>
+
+              <button
+                onClick={() =>
+                  setSelectedUser(null)
+                }
+                className="flex-1 rounded-lg bg-[#071A33] py-2.5 text-sm font-medium text-white transition hover:bg-[#102746]"
+              >
+                Close
+              </button>
+
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* -------------------------------------------------------
+          Edit User Modal
+      ------------------------------------------------------- */}
+      {showEditForm && editingUser && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-xl">
+
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+
+              <div className="flex items-center gap-3">
+
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8B04A]/15">
+                  <Pencil
+                    size={19}
+                    className="text-[#B8892D]"
+                  />
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-semibold text-[#071A33]">
+                    Edit User
+                  </h2>
+
+                  <p className="text-xs text-gray-500">
+                    Update user information
+                  </p>
+                </div>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={closeEditForm}
+                disabled={saving}
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+              >
+                <X size={20} />
+              </button>
+
+            </div>
+
+            {/* Form */}
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-5 p-5"
             >
-              Close
-            </button>
+
+              {/* First + Last Name */}
+              <div className="grid gap-4 sm:grid-cols-2">
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[#071A33]">
+                    First Name
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.firstName}
+                    onChange={(event) =>
+                      handleChange(
+                        "firstName",
+                        event.target.value
+                      )
+                    }
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-[#E8B04A]"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[#071A33]">
+                    Last Name
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.lastName}
+                    onChange={(event) =>
+                      handleChange(
+                        "lastName",
+                        event.target.value
+                      )
+                    }
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-[#E8B04A]"
+                  />
+                </div>
+
+              </div>
+
+              {/* Email */}
+              <div>
+
+                <label className="mb-1.5 block text-sm font-medium text-[#071A33]">
+                  Email
+                </label>
+
+                <div className="relative">
+
+                  <Mail
+                    size={17}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
+
+                  <input
+                    type="email"
+                    value={form.email}
+                    onChange={(event) =>
+                      handleChange(
+                        "email",
+                        event.target.value
+                      )
+                    }
+                    className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[#E8B04A]"
+                  />
+
+                </div>
+              </div>
+
+              {/* Password */}
+              <div>
+
+                <label className="mb-1.5 block text-sm font-medium text-[#071A33]">
+                  Password
+                  <span className="ml-1 font-normal text-gray-400">
+                    (leave empty to keep current password)
+                  </span>
+                </label>
+
+                <div className="relative">
+
+                  <Lock
+                    size={17}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
+
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(event) =>
+                      handleChange(
+                        "password",
+                        event.target.value
+                      )
+                    }
+                    placeholder="New password"
+                    className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[#E8B04A]"
+                  />
+
+                </div>
+              </div>
+
+              {/* Phone */}
+              <div>
+
+                <label className="mb-1.5 block text-sm font-medium text-[#071A33]">
+                  Phone
+                </label>
+
+                <div className="relative">
+
+                  <Phone
+                    size={17}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
+
+                  <input
+                    type="text"
+                    value={form.phone}
+                    onChange={(event) =>
+                      handleChange(
+                        "phone",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Phone number"
+                    className="w-full rounded-xl border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[#E8B04A]"
+                  />
+
+                </div>
+              </div>
+
+              {/* Address */}
+              <div>
+
+                <label className="mb-1.5 block text-sm font-medium text-[#071A33]">
+                  Address
+                </label>
+
+                <div className="relative">
+
+                  <MapPin
+                    size={17}
+                    className="absolute left-3 top-3 text-gray-400"
+                  />
+
+                  <textarea
+                    value={form.address}
+                    onChange={(event) =>
+                      handleChange(
+                        "address",
+                        event.target.value
+                      )
+                    }
+                    placeholder="Address"
+                    rows={3}
+                    className="w-full resize-none rounded-xl border border-gray-200 py-2.5 pl-10 pr-3 text-sm outline-none focus:border-[#E8B04A]"
+                  />
+
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-3 border-t border-gray-100 pt-4">
+
+                <button
+                  type="button"
+                  onClick={closeEditForm}
+                  disabled={saving}
+                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 rounded-xl bg-[#071A33] py-2.5 text-sm font-medium text-white transition hover:bg-[#102746] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saving
+                    ? "Saving..."
+                    : "Save Changes"}
+                </button>
+
+              </div>
+
+            </form>
 
           </div>
         </div>

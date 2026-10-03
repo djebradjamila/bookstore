@@ -1,3 +1,4 @@
+
 import { NextResponse } from "next/server";
 import {
   DynamoDBClient,
@@ -18,34 +19,51 @@ const client = new DynamoDBClient({
 
 export async function GET() {
   try {
-    const [booksResult, usersResult, ordersResult] =
-      await Promise.all([
-        client.send(
-          new ScanCommand({
-            TableName: "Books",
-          })
-        ),
+    const [
+      booksResult,
+      usersResult,
+      ordersResult,
+      wishlistResult,
+    ] = await Promise.all([
+      // Books
+      client.send(
+        new ScanCommand({
+          TableName: "Books",
+        })
+      ),
 
-        client.send(
-          new ScanCommand({
-            TableName: "Users",
-            Select: "COUNT",
-          })
-        ),
+      // Users
+      client.send(
+        new ScanCommand({
+          TableName: "Users",
+          Select: "COUNT",
+        })
+      ),
 
-        client.send(
-          new ScanCommand({
-            TableName: "Orders",
-          })
-        ),
-      ]);
+      // Orders
+      client.send(
+        new ScanCommand({
+          TableName: "Orders",
+        })
+      ),
+
+      // Wishlist
+      client.send(
+        new ScanCommand({
+          TableName: "Wishlists",
+          Select: "COUNT",
+        })
+      ),
+    ]);
 
     const books = booksResult.Items || [];
     const orders = ordersResult.Items || [];
 
+    // Total statistics
     const totalBooks = books.length;
     const totalUsers = usersResult.Count || 0;
     const totalOrders = orders.length;
+    const totalWishlist = wishlistResult.Count || 0;
 
     // Count books with low stock.
     // Low stock means between 1 and 5 units.
@@ -66,14 +84,20 @@ export async function GET() {
       return stock === 0;
     }).length;
 
-    // Calculate total revenue.
-    const revenue = orders.reduce((total, order) => {
-      const totalValue = order.total?.N
-        ? Number(order.total.N)
-        : 0;
+    // Calculate revenue ONLY from confirmed orders.
+    const revenue = orders
+      .filter((order) => {
+        const status = order.status?.S || "";
 
-      return total + totalValue;
-    }, 0);
+        return status.toLowerCase() === "confirmed";
+      })
+      .reduce((total, order) => {
+        const totalValue = order.total?.N
+          ? Number(order.total.N)
+          : 0;
+
+        return total + totalValue;
+      }, 0);
 
     return NextResponse.json({
       success: true,
@@ -82,6 +106,7 @@ export async function GET() {
         totalBooks,
         totalUsers,
         totalOrders,
+        totalWishlist,
         revenue,
         lowStock,
         outOfStock,
@@ -99,3 +124,4 @@ export async function GET() {
     );
   }
 }
+

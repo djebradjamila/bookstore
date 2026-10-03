@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -9,6 +10,7 @@ import {
   Wallet,
   AlertTriangle,
   PackageX,
+  Heart,
   ArrowRight,
 } from "lucide-react";
 
@@ -16,6 +18,7 @@ type Stats = {
   totalBooks: number;
   totalUsers: number;
   totalOrders: number;
+  totalWishlist: number;
   revenue: number;
   lowStock: number;
   outOfStock: number;
@@ -26,6 +29,7 @@ export default function AdminDashboardPage() {
     totalBooks: 0,
     totalUsers: 0,
     totalOrders: 0,
+    totalWishlist: 0,
     revenue: 0,
     lowStock: 0,
     outOfStock: 0,
@@ -83,6 +87,11 @@ export default function AdminDashboardPage() {
       title: "Total Orders",
       value: stats.totalOrders,
       icon: ShoppingCart,
+    },
+    {
+      title: "Total Wishlist",
+      value: stats.totalWishlist,
+      icon: Heart,
     },
     {
       title: "Revenue",
@@ -154,6 +163,45 @@ export default function AdminDashboardPage() {
         })}
       </div>
 
+      {/* Wishlist */}
+      {!loading && (
+        <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F8F4EC]">
+              <Heart
+                size={21}
+                className="text-[#B8892D]"
+              />
+            </div>
+
+            <div>
+              <h2 className="text-lg font-semibold text-[#071A33]">
+                Wishlist
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-600">
+                There are currently{" "}
+                <span className="font-semibold text-[#071A33]">
+                  {stats.totalWishlist}
+                </span>{" "}
+                wishlist{" "}
+                {stats.totalWishlist === 1
+                  ? "item"
+                  : "items"}.
+              </p>
+
+              <Link
+                href="/admin/wishlist"
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#B8892D] hover:underline"
+              >
+                Manage Wishlist
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stock Warning */}
       {!loading &&
         (stats.lowStock > 0 ||
@@ -175,7 +223,9 @@ export default function AdminDashboardPage() {
                 <p className="mt-1 text-sm text-gray-600">
                   {stats.outOfStock > 0 &&
                     `${stats.outOfStock} book${
-                      stats.outOfStock > 1 ? "s are" : " is"
+                      stats.outOfStock > 1
+                        ? "s are"
+                        : " is"
                     } out of stock.`}
 
                   {stats.outOfStock > 0 &&
@@ -184,7 +234,9 @@ export default function AdminDashboardPage() {
 
                   {stats.lowStock > 0 &&
                     `${stats.lowStock} book${
-                      stats.lowStock > 1 ? "s have" : " has"
+                      stats.lowStock > 1
+                        ? "s have"
+                        : " has"
                     } low stock.`}
                 </p>
 

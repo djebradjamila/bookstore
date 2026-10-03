@@ -9,6 +9,7 @@ import {
   Tags,
   Users,
   ShoppingCart,
+  Heart,
   LogOut,
 } from "lucide-react";
 import { useEffect } from "react";
@@ -36,7 +37,6 @@ export default function AdminLayout({
       return;
     }
 
-    // IMPORTANT:
     // Do not redirect while AuthContext is restoring
     // the session from localStorage.
     if (isLoading) {
@@ -112,6 +112,11 @@ export default function AdminLayout({
       name: "Orders",
       href: "/admin/orders",
       icon: ShoppingCart,
+    },
+    {
+      name: "Wishlist",
+      href: "/admin/wishlist",
+      icon: Heart,
     },
   ];
 

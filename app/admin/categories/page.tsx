@@ -10,6 +10,7 @@ import {
   BookOpen,
   Search,
 } from "lucide-react";
+import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
 type Category = {
   id: string;
@@ -36,6 +37,7 @@ export default function AdminCategoriesPage() {
   const [search, setSearch] = useState("");
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const [editingCategory, setEditingCategory] =
     useState<Category | null>(null);
@@ -96,16 +98,6 @@ export default function AdminCategoriesPage() {
           data.message || "Failed to load books"
         );
       }
-
-      /*
-       * /api/books returns DynamoDB AttributeValue objects.
-       *
-       * Example:
-       * {
-       *   title: { S: "The Little Prince" },
-       *   category: { S: "Novels" }
-       * }
-       */
 
       setBooks(
         Array.isArray(data.books)
@@ -194,6 +186,7 @@ export default function AdminCategoriesPage() {
 
     setError("");
     setSuccess("");
+    setShowEmojiPicker(false);
 
     setShowAddForm(true);
   };
@@ -210,6 +203,7 @@ export default function AdminCategoriesPage() {
 
     setError("");
     setSuccess("");
+    setShowEmojiPicker(false);
 
     setShowAddForm(true);
   };
@@ -227,6 +221,15 @@ export default function AdminCategoriesPage() {
     setIcon("");
 
     setError("");
+    setShowEmojiPicker(false);
+  };
+
+  // --------------------------------------------------
+  // Select emoji
+  // --------------------------------------------------
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    setIcon(emojiData.emoji);
+    setShowEmojiPicker(false);
   };
 
   // --------------------------------------------------
@@ -489,20 +492,46 @@ export default function AdminCategoriesPage() {
             </div>
 
             {/* Icon */}
-            <div>
+            <div className="relative">
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 Icon
               </label>
 
-              <input
-                type="text"
-                value={icon}
-                onChange={(e) =>
-                  setIcon(e.target.value)
+              <button
+                type="button"
+                onClick={() =>
+                  setShowEmojiPicker(
+                    (previous) => !previous
+                  )
                 }
-                placeholder="Optional icon"
-                className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#B8892D]"
-              />
+                className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-left text-sm outline-none transition hover:border-[#B8892D]"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#F8F4EC] text-xl">
+                  {icon || "😀"}
+                </span>
+
+                <span className="text-gray-500">
+                  {icon
+                    ? "Change icon"
+                    : "Choose an emoji"}
+                </span>
+              </button>
+
+              {/* Emoji Picker */}
+              {showEmojiPicker && (
+                <div className="absolute left-0 top-full z-50 mt-2">
+                  <EmojiPicker
+                    onEmojiClick={handleEmojiClick}
+                    width={320}
+                    height={400}
+                    searchDisabled={false}
+                    skinTonesDisabled={false}
+                    previewConfig={{
+                      showPreview: false,
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Buttons */}
@@ -600,11 +629,8 @@ export default function AdminCategoriesPage() {
               >
                 {/* Card top */}
                 <div className="mb-5 flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#F8F4EC]">
-                    <BookOpen
-                      size={24}
-                      className="text-[#B8892D]"
-                    />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#F8F4EC] text-2xl">
+                    {category.icon || "📚"}
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -668,4 +694,3 @@ export default function AdminCategoriesPage() {
     </div>
   );
 }
-
