@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -8,10 +7,12 @@ import {
   Users,
   ShoppingCart,
   Wallet,
+  Heart,
+  Mail,
   AlertTriangle,
   PackageX,
-  Heart,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 
 type Stats = {
@@ -35,329 +36,392 @@ export default function AdminDashboardPage() {
     outOfStock: 0,
   });
 
+  const [totalMessages, setTotalMessages] = useState(0);
+
   const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+
   const [error, setError] = useState("");
 
+  /* =========================================================
+     LOAD DASHBOARD DATA
+  ========================================================= */
+
   useEffect(() => {
-    const loadStats = async () => {
+    const loadDashboard = async () => {
       try {
         setLoading(true);
+        setMessagesLoading(true);
         setError("");
 
-        const response = await fetch("/api/admin/stats");
+        const [statsResponse, messagesResponse] =
+          await Promise.all([
+            fetch("/api/admin/stats", {
+              cache: "no-store",
+            }),
+            fetch("/api/contact", {
+              cache: "no-store",
+            }),
+          ]);
 
-        if (!response.ok) {
-          throw new Error("Failed to load statistics");
-        }
+        /* =====================================================
+           STATISTICS
+        ===================================================== */
 
-        const data = await response.json();
-
-        if (!data.success) {
+        if (!statsResponse.ok) {
           throw new Error(
-            data.message || "Failed to load statistics"
+            "Failed to load dashboard statistics"
           );
         }
 
-        setStats(data.stats);
-      } catch (error) {
-        console.error("Dashboard stats error:", error);
+        const statsData = await statsResponse.json();
+
+        if (!statsData.success) {
+          throw new Error(
+            statsData.message ||
+              "Failed to load dashboard statistics"
+          );
+        }
+
+        setStats({
+          totalBooks: Number(
+            statsData.stats?.totalBooks || 0
+          ),
+
+          totalUsers: Number(
+            statsData.stats?.totalUsers || 0
+          ),
+
+          totalOrders: Number(
+            statsData.stats?.totalOrders || 0
+          ),
+
+          totalWishlist: Number(
+            statsData.stats?.totalWishlist || 0
+          ),
+
+          revenue: Number(
+            statsData.stats?.revenue || 0
+          ),
+
+          lowStock: Number(
+            statsData.stats?.lowStock || 0
+          ),
+
+          outOfStock: Number(
+            statsData.stats?.outOfStock || 0
+          ),
+        });
+
+        /* =====================================================
+           CONTACT MESSAGES
+        ===================================================== */
+
+        if (messagesResponse.ok) {
+          const messagesData =
+            await messagesResponse.json();
+
+          let messages: any[] = [];
+
+          if (Array.isArray(messagesData)) {
+            messages = messagesData;
+          } else if (
+            Array.isArray(messagesData.contacts)
+          ) {
+            messages = messagesData.contacts;
+          } else if (
+            Array.isArray(messagesData.messages)
+          ) {
+            messages = messagesData.messages;
+          }
+
+          setTotalMessages(messages.length);
+        } else {
+          setTotalMessages(0);
+        }
+      } catch (err) {
+        console.error(
+          "Dashboard error:",
+          err
+        );
+
         setError(
           "Unable to load dashboard statistics."
         );
       } finally {
         setLoading(false);
+        setMessagesLoading(false);
       }
     };
 
-    loadStats();
+    loadDashboard();
   }, []);
+
+  /* =========================================================
+     STAT CARDS
+  ========================================================= */
 
   const statCards = [
     {
       title: "Total Books",
       value: stats.totalBooks,
       icon: BookOpen,
+      href: "/admin/products",
+      description: "Books in store",
     },
+
     {
       title: "Total Users",
       value: stats.totalUsers,
       icon: Users,
+      href: "/admin/users",
+      description: "Registered users",
     },
+
     {
       title: "Total Orders",
       value: stats.totalOrders,
       icon: ShoppingCart,
+      href: "/admin/orders",
+      description: "Customer orders",
     },
+
     {
       title: "Total Wishlist",
       value: stats.totalWishlist,
       icon: Heart,
+      href: "/admin/wishlist",
+      description: "Wishlist items",
     },
+
     {
       title: "Revenue",
       value: `${stats.revenue.toLocaleString()} DZD`,
       icon: Wallet,
+      href: "/admin/orders",
+      description: "Confirmed orders",
     },
+
+    {
+      title: "Messages",
+      value: totalMessages,
+      icon: Mail,
+      href: "/admin/contact",
+      description: "Contact messages",
+    },
+
     {
       title: "Low Stock",
       value: stats.lowStock,
       icon: AlertTriangle,
-    },
-    {
-      title: "Out of Stock",
-      value: stats.outOfStock,
-      icon: PackageX,
+      href: "/admin/products",
+      description: "Books with low stock",
     },
   ];
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#071A33]">
-          Dashboard
-        </h1>
+    <div className="min-h-screen bg-[#F8F4EC] px-3 py-4 text-[#071A33] sm:px-5 sm:py-6 lg:px-6">
+      <div className="mx-auto max-w-[1450px]">
 
-        <p className="mt-2 text-gray-600">
-          Welcome to your BookStore administration panel.
-        </p>
-      </div>
+        {/* =====================================================
+            HEADER
+        ===================================================== */}
 
-      {/* Error */}
-      {error && (
-        <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-600">
-          {error}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold tracking-tight text-[#071A33] sm:text-3xl">
+            Dashboard
+          </h1>
+
+          <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+            Overview of your BookStore.
+          </p>
         </div>
-      )}
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {statCards.map((card) => {
-          const Icon = card.icon;
+        {/* =====================================================
+            ERROR
+        ===================================================== */}
 
-          return (
-            <div
-              key={card.title}
-              className="rounded-xl bg-white p-6 shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">
-                    {card.title}
-                  </p>
-
-                  <p className="mt-2 text-3xl font-bold text-[#071A33]">
-                    {loading ? "..." : card.value}
-                  </p>
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F8F4EC]">
-                  <Icon
-                    size={23}
-                    className="text-[#B8892D]"
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Wishlist */}
-      {!loading && (
-        <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F8F4EC]">
-              <Heart
-                size={21}
-                className="text-[#B8892D]"
-              />
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-[#071A33]">
-                Wishlist
-              </h2>
-
-              <p className="mt-1 text-sm text-gray-600">
-                There are currently{" "}
-                <span className="font-semibold text-[#071A33]">
-                  {stats.totalWishlist}
-                </span>{" "}
-                wishlist{" "}
-                {stats.totalWishlist === 1
-                  ? "item"
-                  : "items"}.
-              </p>
-
-              <Link
-                href="/admin/wishlist"
-                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#B8892D] hover:underline"
-              >
-                Manage Wishlist
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stock Warning */}
-      {!loading &&
-        (stats.lowStock > 0 ||
-          stats.outOfStock > 0) && (
-          <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-            <div className="flex items-start gap-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F8F4EC]">
-                <AlertTriangle
-                  size={21}
-                  className="text-[#B8892D]"
-                />
-              </div>
-
-              <div>
-                <h2 className="text-lg font-semibold text-[#071A33]">
-                  Stock Alert
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-600">
-                  {stats.outOfStock > 0 &&
-                    `${stats.outOfStock} book${
-                      stats.outOfStock > 1
-                        ? "s are"
-                        : " is"
-                    } out of stock.`}
-
-                  {stats.outOfStock > 0 &&
-                    stats.lowStock > 0 &&
-                    " "}
-
-                  {stats.lowStock > 0 &&
-                    `${stats.lowStock} book${
-                      stats.lowStock > 1
-                        ? "s have"
-                        : " has"
-                    } low stock.`}
-                </p>
-
-                <Link
-                  href="/admin/products"
-                  className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#B8892D] hover:underline"
-                >
-                  Manage Products
-                  <ArrowRight size={16} />
-                </Link>
-              </div>
-            </div>
+        {error && (
+          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+            {error}
           </div>
         )}
 
-      {/* Quick Actions */}
-      <div className="mt-8 rounded-xl bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-[#071A33]">
-          Quick Actions
-        </h2>
+        {/* =====================================================
+            MAIN STATISTICS
+        ===================================================== */}
 
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Link
-            href="/admin/products"
-            className="group rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
-          >
-            <div className="flex items-center justify-between">
-              <BookOpen
-                size={20}
-                className="text-[#B8892D]"
-              />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+          {statCards.map((card) => {
+            const Icon = card.icon;
 
-              <ArrowRight
-                size={17}
-                className="text-gray-400 transition group-hover:translate-x-1"
-              />
+            const isMessage =
+              card.title === "Messages";
+
+            const isLoading =
+              loading ||
+              (isMessage && messagesLoading);
+
+            return (
+              <Link
+                key={card.title}
+                href={card.href}
+                className="group rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-[#E8B04A] hover:shadow-md"
+              >
+                {/* ICON */}
+
+                <div className="flex items-center justify-between">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#F8F4EC]">
+                    <Icon
+                      size={18}
+                      className="text-[#B8892D]"
+                    />
+                  </div>
+
+                  <ArrowRight
+                    size={14}
+                    className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[#B8892D]"
+                  />
+                </div>
+
+                {/* TITLE */}
+
+                <p className="mt-4 truncate text-[11px] font-medium text-slate-500 sm:text-xs">
+                  {card.title}
+                </p>
+
+                {/* VALUE */}
+
+                <div className="mt-1 min-h-[30px]">
+                  {isLoading ? (
+                    <Loader2
+                      size={19}
+                      className="mt-1 animate-spin text-[#B8892D]"
+                    />
+                  ) : (
+                    <p
+                      className={`truncate font-bold text-[#071A33] ${
+                        card.title === "Revenue"
+                          ? "text-lg sm:text-xl"
+                          : "text-2xl"
+                      }`}
+                    >
+                      {card.value}
+                    </p>
+                  )}
+                </div>
+
+                {/* DESCRIPTION */}
+
+                <p className="mt-1 truncate text-[10px] text-slate-400">
+                  {card.description}
+                </p>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* =====================================================
+            STOCK ALERT
+            Only shown when there is actually something to warn
+            about.
+        ===================================================== */}
+
+        {!loading &&
+          (stats.lowStock > 0 ||
+            stats.outOfStock > 0) && (
+            <div className="mt-5 rounded-xl border border-amber-200 bg-white p-4 shadow-sm sm:p-5">
+              <div className="flex items-start gap-3">
+
+                {/* ICON */}
+
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F8F4EC]">
+                  {stats.outOfStock > 0 ? (
+                    <PackageX
+                      size={19}
+                      className="text-red-500"
+                    />
+                  ) : (
+                    <AlertTriangle
+                      size={19}
+                      className="text-[#B8892D]"
+                    />
+                  )}
+                </div>
+
+                {/* CONTENT */}
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h2 className="text-sm font-bold text-[#071A33]">
+                        Stock Alert
+                      </h2>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        Some products need your attention.
+                      </p>
+                    </div>
+
+                    <Link
+                      href="/admin/products"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-[#B8892D] hover:underline"
+                    >
+                      Manage Products
+                      <ArrowRight size={13} />
+                    </Link>
+                  </div>
+
+                  {/* ALERT DETAILS */}
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {stats.outOfStock > 0 && (
+                      <div className="rounded-lg bg-red-50 px-3 py-2 text-xs">
+                        <span className="font-bold text-red-600">
+                          {stats.outOfStock}
+                        </span>{" "}
+                        <span className="text-red-700">
+                          {stats.outOfStock === 1
+                            ? "book is"
+                            : "books are"}{" "}
+                          out of stock
+                        </span>
+                      </div>
+                    )}
+
+                    {stats.lowStock > 0 && (
+                      <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs">
+                        <span className="font-bold text-[#B8892D]">
+                          {stats.lowStock}
+                        </span>{" "}
+                        <span className="text-amber-800">
+                          {stats.lowStock === 1
+                            ? "book has"
+                            : "books have"}{" "}
+                          low stock
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
+          )}
 
-            <p className="mt-3 font-semibold text-[#071A33]">
-              Manage Products
-            </p>
+        {/* =====================================================
+            SIMPLE FOOTER / STATUS
+            No repeated statistics or Quick Actions.
+        ===================================================== */}
 
-            <p className="mt-1 text-sm text-gray-500">
-              Add, edit or delete books.
-            </p>
-          </Link>
+        <div className="mt-5 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[11px] text-slate-400">
+            BookStore Administration
+          </p>
 
-          <Link
-            href="/admin/categories"
-            className="group rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
-          >
-            <div className="flex items-center justify-between">
-              <BookOpen
-                size={20}
-                className="text-[#B8892D]"
-              />
-
-              <ArrowRight
-                size={17}
-                className="text-gray-400 transition group-hover:translate-x-1"
-              />
-            </div>
-
-            <p className="mt-3 font-semibold text-[#071A33]">
-              Manage Categories
-            </p>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Manage book categories.
-            </p>
-          </Link>
-
-          <Link
-            href="/admin/users"
-            className="group rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
-          >
-            <div className="flex items-center justify-between">
-              <Users
-                size={20}
-                className="text-[#B8892D]"
-              />
-
-              <ArrowRight
-                size={17}
-                className="text-gray-400 transition group-hover:translate-x-1"
-              />
-            </div>
-
-            <p className="mt-3 font-semibold text-[#071A33]">
-              Manage Users
-            </p>
-
-            <p className="mt-1 text-sm text-gray-500">
-              View and manage users.
-            </p>
-          </Link>
-
-          <Link
-            href="/admin/orders"
-            className="group rounded-lg border border-gray-200 p-4 transition hover:border-[#E8B04A] hover:bg-[#F8F4EC]"
-          >
-            <div className="flex items-center justify-between">
-              <ShoppingCart
-                size={20}
-                className="text-[#B8892D]"
-              />
-
-              <ArrowRight
-                size={17}
-                className="text-gray-400 transition group-hover:translate-x-1"
-              />
-            </div>
-
-            <p className="mt-3 font-semibold text-[#071A33]">
-              Manage Orders
-            </p>
-
-            <p className="mt-1 text-sm text-gray-500">
-              View and manage orders.
-            </p>
-          </Link>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+            Dashboard active
+          </div>
         </div>
       </div>
     </div>

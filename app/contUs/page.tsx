@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -15,15 +16,16 @@ export default function Contact() {
     setLoading(true);
     setError("");
 
-    const formData = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const formData = new FormData(form);
 
-    const name = formData.get("name");
-    const email = formData.get("email");
-    const subject = formData.get("subject");
-    const message = formData.get("message");
+    const name = String(formData.get("name") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const subject = String(formData.get("subject") || "").trim();
+    const message = String(formData.get("message") || "").trim();
 
     try {
-      const response = await fetch("/api/messages", {
+      const response = await fetch("/api/contact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -39,14 +41,21 @@ export default function Contact() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || "Unable to send message.");
+        throw new Error(
+          data.message || "Unable to send your message."
+        );
       }
 
       setSubmitted(true);
-      event.currentTarget.reset();
+      form.reset();
     } catch (error) {
-      console.error(error);
-      setError("Unable to send your message. Please try again.");
+      console.error("Contact form error:", error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to send your message. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -134,7 +143,10 @@ export default function Contact() {
 
                   <button
                     type="button"
-                    onClick={() => setSubmitted(false)}
+                    onClick={() => {
+                      setSubmitted(false);
+                      setError("");
+                    }}
                     className="mt-5 rounded-full bg-[#E8B04A] px-6 py-2.5 text-sm font-semibold text-[#071A33] transition hover:bg-[#F3C866]"
                   >
                     Send Another Message
@@ -244,3 +256,4 @@ export default function Contact() {
     </main>
   );
 }
+

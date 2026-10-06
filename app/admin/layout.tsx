@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -10,16 +9,58 @@ import {
   Users,
   ShoppingCart,
   Heart,
+  Mail,
   LogOut,
 } from "lucide-react";
 import { useEffect } from "react";
 import { useAuth } from "@/components/AuthContext";
+
+const menuItems = [
+  {
+    name: "Dashboard",
+    href: "/admin/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Products",
+    href: "/admin/products",
+    icon: BookOpen,
+  },
+  {
+    name: "Categories",
+    href: "/admin/categories",
+    icon: Tags,
+  },
+  {
+    name: "Users",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    name: "Orders",
+    href: "/admin/orders",
+    icon: ShoppingCart,
+  },
+  {
+    name: "Wishlist",
+    href: "/admin/wishlist",
+    icon: Heart,
+  },
+  {
+    name: "Contact Messages",
+    href: "/admin/contact",
+    icon: Mail,
+  },
+];
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
+
   const {
     user,
     isAuthenticated,
@@ -28,29 +69,18 @@ export default function AdminLayout({
     logout,
   } = useAuth();
 
-  const pathname = usePathname();
-  const router = useRouter();
-
   useEffect(() => {
-    // The admin sign-in page is public.
+    if (isLoading) return;
+
     if (pathname === "/admin/signin") {
+      if (isAuthenticated && isAdmin) {
+        router.replace("/admin/dashboard");
+      }
+
       return;
     }
 
-    // Do not redirect while AuthContext is restoring
-    // the session from localStorage.
-    if (isLoading) {
-      return;
-    }
-
-    // After loading, check authentication.
-    if (!isAuthenticated) {
-      router.replace("/admin/signin");
-      return;
-    }
-
-    // Authenticated user but not an administrator.
-    if (!isAdmin) {
+    if (!isAuthenticated || !isAdmin) {
       router.replace("/admin/signin");
     }
   }, [
@@ -61,110 +91,96 @@ export default function AdminLayout({
     router,
   ]);
 
-  // Admin sign-in page has no sidebar.
-  if (pathname === "/admin/signin") {
-    return <>{children}</>;
-  }
-
-  // Wait until AuthContext restores the session.
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#F8F4EC]">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-[#E8B04A] border-t-transparent" />
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#E8B04A]" />
 
-          <p className="text-sm text-[#071A33]">
-            Loading admin panel...
+          <p className="mt-4 text-sm text-gray-500">
+            Loading...
           </p>
         </div>
       </div>
     );
   }
 
-  // If authentication failed or the user is not an admin,
-  // the useEffect above will redirect.
+  if (pathname === "/admin/signin") {
+    return <>{children}</>;
+  }
+
   if (!isAuthenticated || !isAdmin) {
     return null;
   }
 
-  const menuItems = [
-    {
-      name: "Dashboard",
-      href: "/admin/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      name: "Products",
-      href: "/admin/products",
-      icon: BookOpen,
-    },
-    {
-      name: "Categories",
-      href: "/admin/categories",
-      icon: Tags,
-    },
-    {
-      name: "Users",
-      href: "/admin/users",
-      icon: Users,
-    },
-    {
-      name: "Orders",
-      href: "/admin/orders",
-      icon: ShoppingCart,
-    },
-    {
-      name: "Wishlist",
-      href: "/admin/wishlist",
-      icon: Heart,
-    },
-  ];
-
-  const handleSignOut = () => {
+  const handleLogout = () => {
     logout();
     router.replace("/admin/signin");
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F4EC] text-[#071A33]">
-      <div className="flex min-h-screen">
+    <div className="min-h-screen bg-[#F8F4EC]">
+      {/* ================================================= */}
+      {/* SIDEBAR */}
+      {/* ================================================= */}
 
-        {/* Admin Sidebar */}
-        <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-[#071A33] text-white">
+      <aside
+        className="
+          fixed
+          left-0
+          top-0
+          z-40
+          flex
+          h-screen
+          w-[72px]
+          flex-col
+          bg-[#071A33]
+          text-white
+          sm:w-64
+        "
+      >
+        {/* ================================================= */}
+        {/* LOGO */}
+        {/* ================================================= */}
 
-          {/* Logo */}
-          <div className="border-b border-white/10 px-6 py-6">
-            <h1 className="text-2xl font-bold text-[#E8B04A]">
-              BookStore
-            </h1>
+        <div className="border-b border-white/10 px-2 py-5 sm:px-6 sm:py-6">
+          <Link
+            href="/admin/dashboard"
+            className="flex items-center justify-center sm:block"
+          >
+            {/* Mobile logo */}
+            <span className="text-xl font-bold text-[#E8B04A] sm:hidden">
+              B
+            </span>
 
-            <p className="mt-1 text-sm text-gray-300">
-              Admin Panel
-            </p>
-          </div>
+            {/* Desktop logo */}
+            <div className="hidden sm:block">
+              <h1 className="text-xl font-bold tracking-wide text-[#E8B04A]">
+                BookStore
+              </h1>
 
-          {/* Admin information */}
-          <div className="px-4 pt-5">
-            <div className="rounded-lg bg-white/10 px-4 py-3">
-              <p className="text-xs text-gray-400">
-                Signed in as
-              </p>
-
-              <p className="mt-1 truncate font-medium text-white">
-                {user?.username ||
-                  user?.name ||
-                  user?.email ||
-                  "Admin"}
-              </p>
-
-              <p className="mt-1 text-xs text-[#E8B04A]">
-                Administrator
+              <p className="mt-1 text-xs text-white/50">
+                Admin Dashboard
               </p>
             </div>
-          </div>
+          </Link>
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 space-y-2 px-4 py-6">
+        {/* ================================================= */}
+        {/* NAVIGATION */}
+        {/* ================================================= */}
+
+        <nav
+          className="
+            overflow-y-auto
+            px-2
+            py-4
+            sm:flex-1
+            sm:px-4
+            sm:py-5
+          "
+        >
+          <div className="space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
 
@@ -176,40 +192,93 @@ export default function AdminLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 transition ${
-                    isActive
-                      ? "bg-[#E8B04A] font-medium text-[#071A33]"
-                      : "text-gray-200 hover:bg-white/10 hover:text-white"
-                  }`}
+                  title={item.name}
+                  className={`
+                    flex
+                    items-center
+                    justify-center
+                    rounded-xl
+                    px-2
+                    py-3
+                    transition
+                    sm:justify-start
+                    sm:gap-3
+                    sm:px-4
+
+                    ${
+                      isActive
+                        ? "bg-[#E8B04A] text-[#071A33]"
+                        : "text-white/70 hover:bg-white/10 hover:text-white"
+                    }
+                  `}
                 >
                   <Icon size={20} />
 
-                  <span>{item.name}</span>
+                  <span className="hidden text-sm font-medium sm:inline">
+                    {item.name}
+                  </span>
                 </Link>
               );
             })}
-          </nav>
+          </div>
+        </nav>
+
+        {/* ================================================= */}
+        {/* SIGN OUT */}
+        {/* ================================================= */}
+
+        <div className="border-t border-white/10 p-2 sm:mt-auto sm:p-4">
+          {/* Admin account - desktop only */}
+          <div className="mb-2 hidden rounded-xl bg-white/5 px-4 py-3 sm:block">
+            <p className="truncate text-sm font-semibold text-white">
+              {user?.name ||
+                user?.username ||
+                "Administrator"}
+            </p>
+
+            <p className="mt-0.5 truncate text-xs text-white/50">
+              {user?.email || "Admin account"}
+            </p>
+          </div>
 
           {/* Sign Out */}
-          <div className="border-t border-white/10 p-4">
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
-            >
-              <LogOut size={20} />
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Sign Out"
+            className="
+              flex
+              w-full
+              items-center
+              justify-center
+              rounded-xl
+              px-2
+              py-3
+              text-red-300
+              transition
+              hover:bg-red-500/10
+              hover:text-red-200
+              sm:justify-start
+              sm:gap-3
+              sm:px-4
+            "
+          >
+            <LogOut size={20} />
 
-              <span>Sign Out</span>
-            </button>
-          </div>
-        </aside>
+            <span className="hidden text-sm font-medium sm:inline">
+              Sign Out
+            </span>
+          </button>
+        </div>
+      </aside>
 
-        {/* Main Admin Content */}
-        <main className="ml-64 min-h-screen flex-1">
-          {children}
-        </main>
-      </div>
+      {/* ================================================= */}
+      {/* MAIN CONTENT */}
+      {/* ================================================= */}
+
+      <main className="ml-[72px] min-h-screen sm:ml-64">
+        {children}
+      </main>
     </div>
   );
 }
-

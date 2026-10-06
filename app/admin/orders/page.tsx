@@ -1,852 +1,1147 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import {
   Eye,
-  Package,
-  Mail,
+  Check,
+  Trash2,
+  Search,
+  X,
+  ShoppingCart,
+  User,
   Phone,
   MapPin,
   Calendar,
-  User,
-  X,
-  ShoppingBag,
-  CheckCircle,
-  Trash2,
+  Package,
+  Mail,
 } from "lucide-react";
 
 type OrderItem = {
-  id?: string;
-  title?: string;
-  name?: string;
-  author?: string;
-  price?: number;
-  quantity?: number;
+  title: string;
+  quantity: number;
+  price: number;
   image?: string;
 };
 
 type Order = {
   orderId: string;
-  userEmail: string;
-
-  firstName: string;
-  lastName: string;
-  phone: string;
-
-  country: string;
-  region: string;
-  city: string;
-  address: string;
-
-  items: OrderItem[];
-  total: number;
-  status: string;
-  createdAt: string;
-  confirmedAt?: string;
+  userEmail?: string;
+  customerName?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  address?: string;
+  items?: OrderItem[];
+  total?: number;
+  totalAmount?: number;
+  status?: string;
+  createdAt?: string;
 };
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
+  const [search, setSearch] = useState("");
+
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [selectedOrder, setSelectedOrder] =
-    useState<Order | null>(null);
 
-  const [confirming, setConfirming] =
-    useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  const [actionMessage, setActionMessage] =
-    useState("");
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
-  const [actionError, setActionError] =
-    useState("");
+  useEffect(() => {
+    const value = search.toLowerCase().trim();
 
-  // --------------------------------------------------
-  // Load all orders
-  // --------------------------------------------------
+    if (!value) {
+      setFilteredOrders(orders);
+      return;
+    }
 
-  const loadOrders = async () => {
+    const filtered = orders.filter((order) => {
+      const customerName =
+        order.customerName ||
+        `${order.firstName || ""} ${order.lastName || ""}`.trim();
+
+      return (
+        order.orderId?.toLowerCase().includes(value) ||
+        order.userEmail?.toLowerCase().includes(value) ||
+        customerName.toLowerCase().includes(value) ||
+        order.phone?.toLowerCase().includes(value) ||
+        order.status?.toLowerCase().includes(value)
+      );
+    });
+
+    setFilteredOrders(filtered);
+  }, [search, orders]);
+
+  async function fetchOrders() {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        "/api/admin/orders"
-      );
+      const response = await fetch("/api/admin/orders");
+
+      if (!response.ok) {
+        throw new Error("Failed to load orders");
+      }
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.error ||
-            "Unable to load orders."
-        );
-      }
+      const orderList = Array.isArray(data)
+        ? data
+        : Array.isArray(data.orders)
+        ? data.orders
+        : [];
 
-      setOrders(data.orders || []);
-    } catch (error) {
-      console.error(
-        "Load orders error:",
-        error
-      );
-
-      setError("Unable to load orders.");
+      setOrders(orderList);
+      setFilteredOrders(orderList);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to load orders.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
-
-  // --------------------------------------------------
-  // Confirm order
-  // --------------------------------------------------
-
-  const confirmOrder = async () => {
-    if (!selectedOrder) return;
-
+  async function handleConfirm(orderId: string) {
     const confirmed = window.confirm(
-      `Are you sure you want to confirm order ${selectedOrder.orderId}? The stock will be decreased.`
+      "Are you sure you want to confirm this order?"
     );
 
     if (!confirmed) return;
 
     try {
-      setConfirming(true);
-      setActionMessage("");
-      setActionError("");
+      setActionLoading(orderId);
+      setError("");
 
-      const response = await fetch(
-        "/api/admin/orders",
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            orderId: selectedOrder.orderId,
-            action: "confirm",
-          }),
-        }
-      );
+      const response = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId,
+          action: "confirm",
+        }),
+      });
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.error ||
-            "Unable to confirm order."
-        );
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to confirm order");
       }
 
-      setActionMessage(
-        "Order confirmed successfully. Stock has been updated."
-      );
+      await fetchOrders();
 
-      await loadOrders();
+      if (selectedOrder?.orderId === orderId) {
+        setSelectedOrder(null);
+      }
+    } catch (err) {
+      console.error(err);
 
-      setSelectedOrder((current) =>
-        current
-          ? {
-              ...current,
-              status: "confirmed",
-            }
-          : null
-      );
-    } catch (error) {
-      console.error(
-        "Confirm order error:",
-        error
-      );
-
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : "Unable to confirm order."
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to confirm order."
       );
     } finally {
-      setConfirming(false);
+      setActionLoading(null);
     }
-  };
+  }
 
-  // --------------------------------------------------
-  // Delete order
-  // --------------------------------------------------
-
-  const deleteOrder = async () => {
-    if (!selectedOrder) return;
-
+  async function handleDelete(orderId: string) {
     const confirmed = window.confirm(
-      `Are you sure you want to delete order ${selectedOrder.orderId}? This action cannot be undone.`
+      "Are you sure you want to delete this order?"
     );
 
     if (!confirmed) return;
 
     try {
-      setConfirming(true);
-      setActionMessage("");
-      setActionError("");
+      setActionLoading(orderId);
+      setError("");
 
-      const response = await fetch(
-        "/api/admin/orders",
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            orderId: selectedOrder.orderId,
-          }),
-        }
-      );
+      const response = await fetch("/api/admin/orders", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          orderId,
+        }),
+      });
 
       const data = await response.json();
 
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.error ||
-            "Unable to delete order."
-        );
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete order");
       }
+
+      setOrders((current) =>
+        current.filter((order) => order.orderId !== orderId)
+      );
 
       setSelectedOrder(null);
+    } catch (err) {
+      console.error(err);
 
-      await loadOrders();
-    } catch (error) {
-      console.error(
-        "Delete order error:",
-        error
-      );
-
-      setActionError(
-        error instanceof Error
-          ? error.message
-          : "Unable to delete order."
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete order."
       );
     } finally {
-      setConfirming(false);
+      setActionLoading(null);
     }
-  };
+  }
 
-  // --------------------------------------------------
-  // Format date
-  // --------------------------------------------------
+  function getCustomerName(order: Order) {
+    if (order.customerName) {
+      return order.customerName;
+    }
 
-  const formatDate = (date: string) => {
-    if (!date) return "-";
+    const name = `${order.firstName || ""} ${
+      order.lastName || ""
+    }`.trim();
 
-    return new Date(date).toLocaleDateString(
-      "en-GB",
-      {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }
+    return name || "Unknown customer";
+  }
+
+  function getTotal(order: Order) {
+    return Number(order.total ?? order.totalAmount ?? 0);
+  }
+
+  function getItemsCount(order: Order) {
+    return (
+      order.items?.reduce(
+        (sum, item) => sum + Number(item.quantity || 0),
+        0
+      ) || 0
     );
-  };
+  }
 
-  // --------------------------------------------------
-  // Format price
-  // --------------------------------------------------
+  function getStatus(order: Order) {
+    return order.status || "pending";
+  }
 
-  const formatPrice = (price: number) => {
-    return `${Number(
-      price || 0
-    ).toLocaleString()} DZD`;
-  };
+  function formatStatus(status: string) {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
 
-  // --------------------------------------------------
-  // Status style
-  // --------------------------------------------------
-
-  const getStatusStyle = (
-    status: string
-  ) => {
-    switch (status?.toLowerCase()) {
+  function getStatusClasses(status: string) {
+    switch (status.toLowerCase()) {
       case "confirmed":
         return "bg-green-100 text-green-700";
-
-      case "pending":
-        return "bg-yellow-100 text-yellow-700";
 
       case "cancelled":
       case "canceled":
         return "bg-red-100 text-red-700";
 
+      case "pending":
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-yellow-100 text-yellow-700";
     }
-  };
+  }
 
-  return (
-    <div className="min-h-screen bg-[#F8F4EC] px-6 py-8">
-      <div className="mx-auto max-w-7xl">
+  function formatDate(date?: string) {
+    if (!date) return "—";
 
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#071A33]">
-              <Package
-                size={22}
-                className="text-[#E8B04A]"
-              />
-            </div>
+    const parsedDate = new Date(date);
 
-            <div>
-              <h1 className="text-2xl font-bold text-[#071A33]">
-                Orders
-              </h1>
+    if (Number.isNaN(parsedDate.getTime())) {
+      return date;
+    }
 
-              <p className="text-sm text-gray-500">
-                Manage and view all customer orders
-              </p>
-            </div>
-          </div>
-        </div>
+    return parsedDate.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
 
-        {/* Loading */}
-        {loading && (
-          <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-            <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#071A33]" />
+  function getAddress(order: Order) {
+    const parts = [
+      order.address,
+      order.city,
+      order.region,
+      order.country,
+    ].filter(Boolean);
 
-            <p className="text-gray-500">
+    return parts.length > 0 ? parts.join(", ") : "—";
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F8F4EC] p-4 sm:p-6 lg:p-8">
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-4 border-gray-200 border-t-[#E8B04A]" />
+            <p className="mt-3 text-sm text-gray-500">
               Loading orders...
             </p>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        {/* Error */}
-        {!loading && error && (
-          <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-            <p className="mb-4 text-red-600">
-              {error}
+  return (
+    <div className="min-h-screen bg-[#F8F4EC] p-3 sm:p-5 lg:p-6">
+      {/* Header */}
+      <div className="mb-5">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-[#071A33] sm:text-2xl">
+              Orders
+            </h1>
+
+            <p className="mt-1 text-xs text-gray-500 sm:text-sm">
+              Manage customer orders
             </p>
-
-            <button
-              onClick={loadOrders}
-              className="rounded-lg bg-[#071A33] px-5 py-2 text-sm font-medium text-white transition hover:bg-[#0d294b]"
-            >
-              Try Again
-            </button>
           </div>
-        )}
 
-        {/* Empty */}
-        {!loading &&
-          !error &&
-          orders.length === 0 && (
-            <div className="rounded-2xl bg-white p-12 text-center shadow-sm">
-              <Package
-                size={45}
-                className="mx-auto mb-4 text-gray-300"
-              />
+          <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm">
+            <ShoppingCart
+              size={16}
+              className="text-[#B8892D]"
+            />
 
-              <h2 className="text-lg font-semibold text-[#071A33]">
-                No orders found
-              </h2>
+            <span className="text-sm font-semibold text-[#071A33]">
+              {orders.length}
+            </span>
 
-              <p className="mt-2 text-sm text-gray-500">
-                There are currently no customer orders.
-              </p>
-            </div>
-          )}
+            <span className="text-xs text-gray-500">
+              orders
+            </span>
+          </div>
+        </div>
 
-        {/* Orders table */}
-        {!loading &&
-          !error &&
-          orders.length > 0 && (
-            <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[1000px]">
-                  <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
-                      <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Order
-                      </th>
+        {/* Search */}
+        <div className="relative mt-4 max-w-md">
+          <Search
+            size={17}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          />
 
-                      <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Customer
-                      </th>
+          <input
+            type="text"
+            placeholder="Search orders..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="
+              w-full
+              rounded-lg
+              border
+              border-gray-200
+              bg-white
+              py-2.5
+              pl-9
+              pr-4
+              text-sm
+              text-[#071A33]
+              outline-none
+              transition
+              focus:border-[#E8B04A]
+              focus:ring-1
+              focus:ring-[#E8B04A]
+            "
+          />
+        </div>
+      </div>
 
-                      <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Contact
-                      </th>
+      {/* Error */}
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
-                      <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Address
-                      </th>
+      {/* Empty */}
+      {filteredOrders.length === 0 ? (
+        <div className="rounded-xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+          <ShoppingCart
+            size={38}
+            className="mx-auto text-gray-300"
+          />
 
-                      <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <h2 className="mt-4 text-base font-semibold text-[#071A33]">
+            No orders found
+          </h2>
+
+          <p className="mt-1 text-sm text-gray-500">
+            {search
+              ? "Try another search."
+              : "There are no orders yet."}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* ================================================= */}
+          {/* MOBILE - CARDS */}
+          {/* ================================================= */}
+
+          <div className="space-y-3 md:hidden">
+            {filteredOrders.map((order) => {
+              const status = getStatus(order);
+              const customerName = getCustomerName(order);
+              const isActionLoading =
+                actionLoading === order.orderId;
+
+              return (
+                <div
+                  key={order.orderId}
+                  className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
+                >
+                  {/* Top */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-[#071A33]">
+                        #{order.orderId}
+                      </p>
+
+                      <p className="mt-1 truncate text-xs text-gray-500">
+                        {formatDate(order.createdAt)}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${getStatusClasses(
+                        status
+                      )}`}
+                    >
+                      {formatStatus(status)}
+                    </span>
+                  </div>
+
+                  {/* Customer */}
+                  <div className="mt-4 space-y-2 border-t border-gray-100 pt-3">
+                    <div className="flex items-center gap-2">
+                      <User
+                        size={14}
+                        className="shrink-0 text-gray-400"
+                      />
+
+                      <span className="truncate text-sm font-medium text-[#071A33]">
+                        {customerName}
+                      </span>
+                    </div>
+
+                    {order.userEmail && (
+                      <div className="flex items-center gap-2">
+                        <Mail
+                          size={14}
+                          className="shrink-0 text-gray-400"
+                        />
+
+                        <span className="truncate text-xs text-gray-500">
+                          {order.userEmail}
+                        </span>
+                      </div>
+                    )}
+
+                    {order.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone
+                          size={14}
+                          className="shrink-0 text-gray-400"
+                        />
+
+                        <span className="text-xs text-gray-500">
+                          {order.phone}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-start gap-2">
+                      <MapPin
+                        size={14}
+                        className="mt-0.5 shrink-0 text-gray-400"
+                      />
+
+                      <span className="line-clamp-2 text-xs text-gray-500">
+                        {getAddress(order)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Bottom */}
+                  <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+                    <div>
+                      <p className="text-[11px] text-gray-400">
+                        Items
+                      </p>
+
+                      <p className="text-sm font-semibold text-[#071A33]">
+                        {getItemsCount(order)}
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <p className="text-[11px] text-gray-400">
                         Total
-                      </th>
+                      </p>
 
-                      <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Status
-                      </th>
+                      <p className="text-sm font-bold text-[#071A33]">
+                        {getTotal(order).toLocaleString()} DA
+                      </p>
+                    </div>
+                  </div>
 
-                      <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Date
-                      </th>
+                  {/* Actions */}
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedOrder(order)}
+                      className="
+                        flex
+                        flex-1
+                        items-center
+                        justify-center
+                        gap-1.5
+                        rounded-lg
+                        border
+                        border-gray-200
+                        bg-white
+                        px-3
+                        py-2
+                        text-xs
+                        font-medium
+                        text-[#071A33]
+                        transition
+                        hover:bg-gray-50
+                      "
+                    >
+                      <Eye size={14} />
+                      View
+                    </button>
 
-                      <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
-                        Action
-                      </th>
-                    </tr>
-                  </thead>
+                    {status.toLowerCase() === "pending" && (
+                      <button
+                        type="button"
+                        disabled={isActionLoading}
+                        onClick={() =>
+                          handleConfirm(order.orderId)
+                        }
+                        className="
+                          flex
+                          flex-1
+                          items-center
+                          justify-center
+                          gap-1.5
+                          rounded-lg
+                          bg-green-600
+                          px-3
+                          py-2
+                          text-xs
+                          font-medium
+                          text-white
+                          transition
+                          hover:bg-green-700
+                          disabled:cursor-not-allowed
+                          disabled:opacity-50
+                        "
+                      >
+                        <Check size={14} />
+                        Confirm
+                      </button>
+                    )}
 
-                  <tbody>
-                    {orders.map((order) => (
+                    <button
+                      type="button"
+                      disabled={isActionLoading}
+                      onClick={() =>
+                        handleDelete(order.orderId)
+                      }
+                      className="
+                        flex
+                        items-center
+                        justify-center
+                        rounded-lg
+                        border
+                        border-red-200
+                        px-3
+                        py-2
+                        text-red-500
+                        transition
+                        hover:bg-red-50
+                        disabled:cursor-not-allowed
+                        disabled:opacity-50
+                      "
+                      title="Delete order"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ================================================= */}
+          {/* DESKTOP - COMPACT TABLE */}
+          {/* ================================================= */}
+
+          <div className="hidden overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full table-fixed">
+                <thead className="bg-[#071A33] text-white">
+                  <tr>
+                    <th className="w-[13%] px-3 py-2.5 text-left text-[11px] font-semibold">
+                      Order ID
+                    </th>
+
+                    <th className="w-[17%] px-3 py-2.5 text-left text-[11px] font-semibold">
+                      Customer
+                    </th>
+
+                    <th className="w-[10%] px-3 py-2.5 text-left text-[11px] font-semibold">
+                      Phone
+                    </th>
+
+                    <th className="w-[10%] px-3 py-2.5 text-left text-[11px] font-semibold">
+                      Date
+                    </th>
+
+                    <th className="w-[8%] px-3 py-2.5 text-center text-[11px] font-semibold">
+                      Items
+                    </th>
+
+                    <th className="w-[11%] px-3 py-2.5 text-right text-[11px] font-semibold">
+                      Total
+                    </th>
+
+                    <th className="w-[10%] px-3 py-2.5 text-center text-[11px] font-semibold">
+                      Status
+                    </th>
+
+                    <th className="w-[21%] px-3 py-2.5 text-center text-[11px] font-semibold">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100">
+                  {filteredOrders.map((order) => {
+                    const status = getStatus(order);
+                    const customerName =
+                      getCustomerName(order);
+
+                    const isActionLoading =
+                      actionLoading === order.orderId;
+
+                    return (
                       <tr
                         key={order.orderId}
-                        className="border-b border-gray-100 last:border-0 hover:bg-[#F8F4EC]/40"
+                        className="transition hover:bg-[#F8F4EC]/60"
                       >
                         {/* Order ID */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#071A33]">
-                              <ShoppingBag
-                                size={17}
-                                className="text-[#E8B04A]"
-                              />
-                            </div>
-
-                            <div>
-                              <p className="font-semibold text-[#071A33]">
-                                {order.orderId}
-                              </p>
-
-                              <p className="text-xs text-gray-400">
-                                {order.items?.length ||
-                                  0}{" "}
-                                item
-                                {order.items
-                                  ?.length !== 1
-                                  ? "s"
-                                  : ""}
-                              </p>
-                            </div>
-                          </div>
+                        <td className="px-3 py-2.5 align-middle">
+                          <p
+                            className="truncate text-xs font-semibold text-[#071A33]"
+                            title={order.orderId}
+                          >
+                            #{order.orderId}
+                          </p>
                         </td>
 
                         {/* Customer */}
-                        <td className="px-5 py-4">
-                          <p className="font-medium text-[#071A33]">
-                            {order.firstName}{" "}
-                            {order.lastName}
-                          </p>
+                        <td className="px-3 py-2.5 align-middle">
+                          <div className="min-w-0">
+                            <p
+                              className="truncate text-xs font-semibold text-[#071A33]"
+                              title={customerName}
+                            >
+                              {customerName}
+                            </p>
 
-                          <p className="mt-1 text-xs text-gray-500">
-                            {order.userEmail}
-                          </p>
-                        </td>
-
-                        {/* Contact */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Phone size={14} />
-
-                            <span>
-                              {order.phone || "-"}
-                            </span>
+                            <p
+                              className="mt-0.5 truncate text-[10px] text-gray-400"
+                              title={order.userEmail}
+                            >
+                              {order.userEmail || "—"}
+                            </p>
                           </div>
                         </td>
 
-                        {/* Address */}
-                        <td className="max-w-[220px] px-5 py-4">
-                          <div className="flex items-start gap-2 text-sm text-gray-600">
-                            <MapPin
-                              size={15}
-                              className="mt-0.5 shrink-0"
-                            />
-
-                            <span className="line-clamp-2">
-                              {order.address || "-"}
-                              {order.city
-                                ? `, ${order.city}`
-                                : ""}
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* Total */}
-                        <td className="px-5 py-4">
-                          <p className="font-semibold text-[#071A33]">
-                            {formatPrice(
-                              order.total
-                            )}
-                          </p>
-                        </td>
-
-                        {/* Status */}
-                        <td className="px-5 py-4">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusStyle(
-                              order.status
-                            )}`}
+                        {/* Phone */}
+                        <td className="px-3 py-2.5 align-middle">
+                          <p
+                            className="truncate text-[11px] text-gray-600"
+                            title={order.phone}
                           >
-                            {order.status}
-                          </span>
+                            {order.phone || "—"}
+                          </p>
                         </td>
 
                         {/* Date */}
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Calendar size={14} />
+                        <td className="px-3 py-2.5 align-middle">
+                          <p className="text-[11px] text-gray-600">
+                            {formatDate(order.createdAt)}
+                          </p>
+                        </td>
 
-                            {formatDate(
-                              order.createdAt
+                        {/* Items */}
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          <span className="text-xs font-semibold text-[#071A33]">
+                            {getItemsCount(order)}
+                          </span>
+                        </td>
+
+                        {/* Total */}
+                        <td className="px-3 py-2.5 text-right align-middle">
+                          <span className="whitespace-nowrap text-xs font-bold text-[#071A33]">
+                            {getTotal(order).toLocaleString()} DA
+                          </span>
+                        </td>
+
+                        {/* Status */}
+                        <td className="px-3 py-2.5 text-center align-middle">
+                          <span
+                            className={`
+                              inline-flex
+                              rounded-full
+                              px-2
+                              py-1
+                              text-[10px]
+                              font-semibold
+                              ${getStatusClasses(status)}
+                            `}
+                          >
+                            {formatStatus(status)}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-3 py-2.5 align-middle">
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedOrder(order)
+                              }
+                              title="View order"
+                              className="
+                                inline-flex
+                                h-7
+                                items-center
+                                gap-1
+                                rounded-md
+                                border
+                                border-gray-200
+                                bg-white
+                                px-2
+                                text-[10px]
+                                font-medium
+                                text-[#071A33]
+                                transition
+                                hover:bg-gray-50
+                              "
+                            >
+                              <Eye size={12} />
+                              View
+                            </button>
+
+                            {status.toLowerCase() ===
+                              "pending" && (
+                              <button
+                                type="button"
+                                disabled={isActionLoading}
+                                onClick={() =>
+                                  handleConfirm(
+                                    order.orderId
+                                  )
+                                }
+                                title="Confirm order"
+                                className="
+                                  inline-flex
+                                  h-7
+                                  items-center
+                                  gap-1
+                                  rounded-md
+                                  bg-green-600
+                                  px-2
+                                  text-[10px]
+                                  font-medium
+                                  text-white
+                                  transition
+                                  hover:bg-green-700
+                                  disabled:cursor-not-allowed
+                                  disabled:opacity-50
+                                "
+                              >
+                                <Check size={12} />
+                                Confirm
+                              </button>
                             )}
+
+                            <button
+                              type="button"
+                              disabled={isActionLoading}
+                              onClick={() =>
+                                handleDelete(order.orderId)
+                              }
+                              title="Delete order"
+                              className="
+                                inline-flex
+                                h-7
+                                w-7
+                                items-center
+                                justify-center
+                                rounded-md
+                                border
+                                border-red-200
+                                text-red-500
+                                transition
+                                hover:bg-red-50
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
+                              "
+                            >
+                              <Trash2 size={12} />
+                            </button>
                           </div>
                         </td>
-
-                        {/* View */}
-                        <td className="px-5 py-4 text-center">
-                          <button
-                            onClick={() => {
-                              setActionMessage("");
-                              setActionError("");
-                              setSelectedOrder(
-                                order
-                              );
-                            }}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[#071A33] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0d294b]"
-                          >
-                            <Eye size={16} />
-                            View
-                          </button>
-                        </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Footer */}
-              <div className="border-t border-gray-100 px-5 py-4">
-                <p className="text-sm text-gray-500">
-                  Total orders:{" "}
-                  <span className="font-semibold text-[#071A33]">
-                    {orders.length}
-                  </span>
-                </p>
-              </div>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          )}
-      </div>
+          </div>
+        </>
+      )}
 
+      {/* ===================================================== */}
       {/* VIEW ORDER MODAL */}
+      {/* ===================================================== */}
+
       {selectedOrder && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6"
-          onClick={() =>
-            setSelectedOrder(null)
-          }
+          className="
+            fixed
+            inset-0
+            z-50
+            flex
+            items-center
+            justify-center
+            bg-black/50
+            p-3
+            sm:p-5
+          "
+          onClick={() => setSelectedOrder(null)}
         >
           <div
-            className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
+            className="
+              max-h-[92vh]
+              w-full
+              max-w-2xl
+              overflow-y-auto
+              rounded-2xl
+              bg-white
+              shadow-2xl
+            "
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Modal header */}
-            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+            {/* Modal Header */}
+            <div className="sticky top-0 flex items-center justify-between border-b border-gray-100 bg-white px-4 py-3.5 sm:px-5">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                  Order details
-                </p>
-
-                <h2 className="mt-1 text-xl font-bold text-[#071A33]">
-                  {selectedOrder.orderId}
+                <h2 className="text-base font-bold text-[#071A33]">
+                  Order Details
                 </h2>
+
+                <p className="mt-0.5 text-xs text-gray-500">
+                  #{selectedOrder.orderId}
+                </p>
               </div>
 
               <button
-                onClick={() =>
-                  setSelectedOrder(null)
-                }
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200"
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
               >
                 <X size={18} />
               </button>
             </div>
 
-            <div className="space-y-6 p-6">
-
-              {/* Action messages */}
-              {actionMessage && (
-                <div className="flex items-start gap-3 rounded-xl bg-green-50 p-4 text-sm text-green-700">
-                  <CheckCircle
-                    size={18}
-                    className="mt-0.5 shrink-0"
-                  />
-
-                  <p>{actionMessage}</p>
-                </div>
-              )}
-
-              {actionError && (
-                <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
-                  {actionError}
-                </div>
-              )}
-
-              {/* Customer information */}
+            <div className="space-y-5 p-4 sm:p-5">
+              {/* Customer */}
               <section>
-                <div className="mb-3 flex items-center gap-2">
-                  <User
-                    size={18}
-                    className="text-[#B8892D]"
-                  />
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[#B8892D]">
+                  Customer
+                </h3>
 
-                  <h3 className="font-semibold text-[#071A33]">
-                    Customer Information
-                  </h3>
-                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <div className="flex items-center gap-2">
+                      <User
+                        size={15}
+                        className="text-gray-400"
+                      />
 
-                <div className="grid gap-4 rounded-xl bg-[#F8F4EC] p-4 sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-gray-500">
-                      Full name
-                    </p>
+                      <span className="text-[11px] text-gray-400">
+                        Name
+                      </span>
+                    </div>
 
-                    <p className="mt-1 font-medium text-[#071A33]">
-                      {selectedOrder.firstName}{" "}
-                      {selectedOrder.lastName}
+                    <p className="mt-1 text-sm font-semibold text-[#071A33]">
+                      {getCustomerName(selectedOrder)}
                     </p>
                   </div>
 
-                  <div>
-                    <p className="text-xs text-gray-500">
-                      Email
-                    </p>
-
-                    <div className="mt-1 flex items-center gap-2">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <div className="flex items-center gap-2">
                       <Mail
-                        size={14}
-                        className="text-gray-500"
+                        size={15}
+                        className="text-gray-400"
                       />
 
-                      <p className="break-all text-sm font-medium text-[#071A33]">
-                        {selectedOrder.userEmail}
-                      </p>
+                      <span className="text-[11px] text-gray-400">
+                        Email
+                      </span>
                     </div>
+
+                    <p className="mt-1 break-all text-sm font-semibold text-[#071A33]">
+                      {selectedOrder.userEmail || "—"}
+                    </p>
                   </div>
 
-                  <div>
-                    <p className="text-xs text-gray-500">
-                      Phone
-                    </p>
-
-                    <div className="mt-1 flex items-center gap-2">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <div className="flex items-center gap-2">
                       <Phone
-                        size={14}
-                        className="text-gray-500"
+                        size={15}
+                        className="text-gray-400"
                       />
 
-                      <p className="text-sm font-medium text-[#071A33]">
-                        {selectedOrder.phone || "-"}
-                      </p>
+                      <span className="text-[11px] text-gray-400">
+                        Phone
+                      </span>
                     </div>
-                  </div>
 
-                  <div>
-                    <p className="text-xs text-gray-500">
-                      Order date
+                    <p className="mt-1 text-sm font-semibold text-[#071A33]">
+                      {selectedOrder.phone || "—"}
                     </p>
+                  </div>
 
-                    <div className="mt-1 flex items-center gap-2">
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <div className="flex items-center gap-2">
                       <Calendar
-                        size={14}
-                        className="text-gray-500"
+                        size={15}
+                        className="text-gray-400"
                       />
 
-                      <p className="text-sm font-medium text-[#071A33]">
-                        {formatDate(
-                          selectedOrder.createdAt
-                        )}
-                      </p>
+                      <span className="text-[11px] text-gray-400">
+                        Date
+                      </span>
                     </div>
+
+                    <p className="mt-1 text-sm font-semibold text-[#071A33]">
+                      {formatDate(selectedOrder.createdAt)}
+                    </p>
                   </div>
                 </div>
               </section>
 
-              {/* Delivery information */}
+              {/* Delivery */}
               <section>
-                <div className="mb-3 flex items-center gap-2">
-                  <MapPin
-                    size={18}
-                    className="text-[#B8892D]"
-                  />
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[#B8892D]">
+                  Delivery Address
+                </h3>
 
-                  <h3 className="font-semibold text-[#071A33]">
-                    Delivery Information
-                  </h3>
-                </div>
+                <div className="rounded-lg bg-gray-50 p-3">
+                  <div className="flex items-start gap-2">
+                    <MapPin
+                      size={16}
+                      className="mt-0.5 shrink-0 text-gray-400"
+                    />
 
-                <div className="rounded-xl bg-[#F8F4EC] p-4">
-                  <p className="font-medium text-[#071A33]">
-                    {selectedOrder.address || "-"}
-                  </p>
-
-                  <p className="mt-1 text-sm text-gray-600">
-                    {selectedOrder.city || "-"}
-                    {selectedOrder.region
-                      ? `, ${selectedOrder.region}`
-                      : ""}
-                  </p>
-
-                  <p className="text-sm text-gray-600">
-                    {selectedOrder.country || "-"}
-                  </p>
+                    <p className="text-sm leading-6 text-gray-700">
+                      {getAddress(selectedOrder)}
+                    </p>
+                  </div>
                 </div>
               </section>
 
-              {/* Order items */}
+              {/* Items */}
               <section>
-                <div className="mb-3 flex items-center gap-2">
-                  <ShoppingBag
-                    size={18}
-                    className="text-[#B8892D]"
-                  />
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[#B8892D]">
+                  Order Items
+                </h3>
 
-                  <h3 className="font-semibold text-[#071A33]">
-                    Ordered Books
-                  </h3>
-                </div>
-
-                <div className="overflow-hidden rounded-xl border border-gray-100">
+                <div className="overflow-hidden rounded-lg border border-gray-100">
                   {selectedOrder.items &&
                   selectedOrder.items.length > 0 ? (
                     <div className="divide-y divide-gray-100">
                       {selectedOrder.items.map(
-                        (item, index) => {
-                          const itemName =
-                            item.title ||
-                            item.name ||
-                            "Book";
+                        (item, index) => (
+                          <div
+                            key={`${item.title}-${index}`}
+                            className="flex items-center justify-between gap-3 p-3"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-[#071A33]">
+                                {item.title}
+                              </p>
 
-                          const quantity =
-                            Number(
-                              item.quantity
-                            ) || 1;
-
-                          const price =
-                            Number(
-                              item.price
-                            ) || 0;
-
-                          return (
-                            <div
-                              key={`${item.id || itemName}-${index}`}
-                              className="flex items-center justify-between gap-4 p-4"
-                            >
-                              <div className="min-w-0">
-                                <p className="font-medium text-[#071A33]">
-                                  {itemName}
-                                </p>
-
-                                {item.author && (
-                                  <p className="mt-1 text-xs text-gray-500">
-                                    {item.author}
-                                  </p>
-                                )}
-
-                                <p className="mt-1 text-xs text-gray-500">
-                                  Quantity:{" "}
-                                  {quantity}
-                                </p>
-                              </div>
-
-                              <p className="shrink-0 font-semibold text-[#071A33]">
-                                {formatPrice(
-                                  price *
-                                    quantity
-                                )}
+                              <p className="mt-1 text-xs text-gray-500">
+                                Quantity: {item.quantity}
                               </p>
                             </div>
-                          );
-                        }
+
+                            <p className="shrink-0 text-sm font-semibold text-[#071A33]">
+                              {(
+                                Number(item.price || 0) *
+                                Number(item.quantity || 0)
+                              ).toLocaleString()}{" "}
+                              DA
+                            </p>
+                          </div>
+                        )
                       )}
                     </div>
                   ) : (
-                    <div className="p-5 text-center text-sm text-gray-500">
+                    <div className="p-4 text-center text-sm text-gray-500">
                       No items found.
                     </div>
                   )}
                 </div>
-              </section>
 
-              {/* Order summary */}
-              <section className="rounded-xl bg-[#071A33] p-5 text-white">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">
-                    Status
-                  </span>
-
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${getStatusStyle(
-                      selectedOrder.status
-                    )}`}
-                  >
-                    {selectedOrder.status}
-                  </span>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
-                  <span className="font-medium">
+                <div className="mt-3 flex items-center justify-between rounded-lg bg-[#071A33] px-4 py-3 text-white">
+                  <span className="text-sm font-medium">
                     Total
                   </span>
 
-                  <span className="text-xl font-bold text-[#E8B04A]">
-                    {formatPrice(
-                      selectedOrder.total
+                  <span className="text-base font-bold">
+                    {getTotal(
+                      selectedOrder
+                    ).toLocaleString()}{" "}
+                    DA
+                  </span>
+                </div>
+              </section>
+
+              {/* Status */}
+              <section>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wide text-[#B8892D]">
+                  Status
+                </h3>
+
+                <div>
+                  <span
+                    className={`
+                      inline-flex
+                      rounded-full
+                      px-3
+                      py-1.5
+                      text-xs
+                      font-semibold
+                      ${getStatusClasses(
+                        getStatus(selectedOrder)
+                      )}
+                    `}
+                  >
+                    {formatStatus(
+                      getStatus(selectedOrder)
                     )}
                   </span>
                 </div>
               </section>
             </div>
 
-            {/* Modal footer */}
-            <div className="flex items-center justify-between gap-3 border-t border-gray-100 px-6 py-4">
-              <div className="flex items-center gap-3">
-                {selectedOrder.status ===
-                  "pending" && (
-                  <button
-                    onClick={confirmOrder}
-                    disabled={confirming}
-                    className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <CheckCircle size={17} />
-
-                    {confirming
-                      ? "Confirming..."
-                      : "Confirm Order"}
-                  </button>
-                )}
-
-                <button
-                  onClick={deleteOrder}
-                  disabled={confirming}
-                  className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <Trash2 size={17} />
-
-                  {confirming
-                    ? "Processing..."
-                    : "Delete Order"}
-                </button>
-              </div>
-
+            {/* Modal Actions */}
+            <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-4 py-3 sm:flex-row sm:justify-end sm:px-5">
               <button
-                onClick={() =>
-                  setSelectedOrder(null)
-                }
-                className="rounded-lg bg-[#071A33] px-5 py-2.5 text-sm font-medium text-white transition hover:bg-[#0d294b]"
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="
+                  rounded-lg
+                  border
+                  border-gray-200
+                  bg-white
+                  px-4
+                  py-2
+                  text-sm
+                  font-medium
+                  text-[#071A33]
+                  transition
+                  hover:bg-gray-50
+                "
               >
                 Close
+              </button>
+
+              {getStatus(selectedOrder).toLowerCase() ===
+                "pending" && (
+                <button
+                  type="button"
+                  disabled={
+                    actionLoading ===
+                    selectedOrder.orderId
+                  }
+                  onClick={() =>
+                    handleConfirm(
+                      selectedOrder.orderId
+                    )
+                  }
+                  className="
+                    inline-flex
+                    items-center
+                    justify-center
+                    gap-2
+                    rounded-lg
+                    bg-green-600
+                    px-4
+                    py-2
+                    text-sm
+                    font-medium
+                    text-white
+                    transition
+                    hover:bg-green-700
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
+                  "
+                >
+                  <Check size={15} />
+                  Confirm Order
+                </button>
+              )}
+
+              <button
+                type="button"
+                disabled={
+                  actionLoading ===
+                  selectedOrder.orderId
+                }
+                onClick={() =>
+                  handleDelete(selectedOrder.orderId)
+                }
+                className="
+                  inline-flex
+                  items-center
+                  justify-center
+                  gap-2
+                  rounded-lg
+                  border
+                  border-red-200
+                  bg-white
+                  px-4
+                  py-2
+                  text-sm
+                  font-medium
+                  text-red-500
+                  transition
+                  hover:bg-red-50
+                  disabled:cursor-not-allowed
+                  disabled:opacity-50
+                "
+              >
+                <Trash2 size={15} />
+                Delete
               </button>
             </div>
           </div>
@@ -855,4 +1150,3 @@ export default function AdminOrdersPage() {
     </div>
   );
 }
-
