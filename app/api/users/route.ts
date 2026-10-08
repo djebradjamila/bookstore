@@ -1,273 +1,300 @@
-import { PutCommand, GetCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
-import bcrypt from "bcryptjs";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  PutCommand,
+  GetCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { dynamoDB } from "@/lib/dynamodb";
+import bcrypt from "bcryptjs";
 
-export async function POST(request: Request) {
-try {
-const {
-firstName,
-lastName,
-name,
-email,
-username,
-password,
-action,
-} = await request.json();
+const USERS_TABLE = "Users";
+const ADMIN_EMAIL = "admin@bookstore.local";
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
 
-// --------------------------------------------------
-// ADMIN LOGIN
-// Username + password
-// --------------------------------------------------
+    const {
+      email,
+      username,
+      password,
+      firstName,
+      lastName,
+      name,
+      phone,
+      address,
+      action,
+    } = body;
 
-if (action === "admin-login") {
-  if (!username || !password) {
-    return Response.json(
-      { error: "Username and password are required." },
-      { status: 400 }
+    // =========================================================
+    // ADMIN LOGIN
+    // =========================================================
+    if (action === "admin-login") {
+      if (!username || !password) {
+        return NextResponse.json(
+          { error: "Username and password are required." },
+          { status: 400 }
+        );
+      }
+
+      const enteredUsername = String(username)
+        .trim()
+        .toLowerCase();
+
+      // The administrator uses the fixed administrator email.
+      // The username comparison below is case-insensitive.
+      const result = await dynamoDB.send(
+        new GetCommand({
+          TableName: USERS_TABLE,
+          Key: {
+            email: ADMIN_EMAIL,
+          },
+        })
+      );
+
+      const admin = result.Item;
+
+      if (!admin) {
+        return NextResponse.json(
+          { error: "No administrator account found." },
+          { status: 404 }
+        );
+      }
+
+      if (admin.role !== "admin") {
+        return NextResponse.json(
+          {
+            error:
+              "This account is not an administrator account.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const storedUsername = String(admin.username || "")
+        .trim()
+        .toLowerCase();
+
+      if (storedUsername !== enteredUsername) {
+        return NextResponse.json(
+          {
+            error:
+              "Invalid administrator username or password.",
+          },
+          { status: 401 }
+        );
+      }
+
+      const storedPassword = String(
+        admin.password || admin.storedPassword || ""
+      );
+
+      if (!storedPassword) {
+        return NextResponse.json(
+          {
+            error:
+              "Administrator password is not configured.",
+          },
+          { status: 500 }
+        );
+      }
+
+      const passwordValid = await bcrypt.compare(
+        String(password),
+        storedPassword
+      );
+
+      if (!passwordValid) {
+        return NextResponse.json(
+          {
+            error:
+              "Invalid administrator username or password.",
+          },
+          { status: 401 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          email: admin.email,
+          username: admin.username || "",
+          firstName: admin.firstName || "",
+          lastName: admin.lastName || "",
+          name:
+            admin.name ||
+            `${admin.firstName || ""} ${
+              admin.lastName || ""
+            }`.trim(),
+          role: "admin",
+        },
+      });
+    }
+
+    // =========================================================
+    // CUSTOMER LOGIN
+    // =========================================================
+    if (action === "login") {
+      if (!email || !password) {
+        return NextResponse.json(
+          { error: "Email and password are required." },
+          { status: 400 }
+        );
+      }
+
+      const normalizedEmail = String(email)
+        .trim()
+        .toLowerCase();
+
+      const result = await dynamoDB.send(
+        new GetCommand({
+          TableName: USERS_TABLE,
+          Key: {
+            email: normalizedEmail,
+          },
+        })
+      );
+
+      const user = result.Item;
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "Invalid email or password." },
+          { status: 401 }
+        );
+      }
+
+      const storedPassword = String(
+        user.password || user.storedPassword || ""
+      );
+
+      const passwordValid = await bcrypt.compare(
+        String(password),
+        storedPassword
+      );
+
+      if (!passwordValid) {
+        return NextResponse.json(
+          { error: "Invalid email or password." },
+          { status: 401 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          email: user.email,
+          username: user.username || "",
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          name:
+            user.name ||
+            `${user.firstName || ""} ${
+              user.lastName || ""
+            }`.trim(),
+          phone: user.phone || "",
+          address: user.address || "",
+          role: user.role || "user",
+        },
+      });
+    }
+
+    // =========================================================
+    // CUSTOMER SIGN UP
+    // =========================================================
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { error: "Email and password are required." },
+        { status: 400 }
+      );
+    }
+
+    const normalizedEmail = String(email)
+      .trim()
+      .toLowerCase();
+
+    const existingUser = await dynamoDB.send(
+      new GetCommand({
+        TableName: USERS_TABLE,
+        Key: {
+          email: normalizedEmail,
+        },
+      })
     );
-  }
 
-  const normalizedUsername = username.trim().toLowerCase();
+    if (existingUser.Item) {
+      return NextResponse.json(
+        {
+          error:
+            "An account with this email already exists.",
+        },
+        { status: 409 }
+      );
+    }
 
-  const result = await dynamoDB.send(
-    new ScanCommand({
-      TableName: "Users",
-      FilterExpression:
-        "#username = :username AND #role = :admin",
-      ExpressionAttributeNames: {
-        "#username": "username",
-        "#role": "role",
-      },
-      ExpressionAttributeValues: {
-        ":username": normalizedUsername,
-        ":admin": "admin",
-      },
-    })
-  );
-
-  const admin = result.Items?.[0];
-
-  if (!admin) {
-    return Response.json(
-      { error: "No administrator account found with this username." },
-      { status: 404 }
+    const hashedPassword = await bcrypt.hash(
+      String(password),
+      10
     );
-  }
 
-  const passwordMatch = await bcrypt.compare(
-    password,
-    admin.password
-  );
-
-  if (!passwordMatch) {
-    return Response.json(
-      { error: "Incorrect password." },
-      { status: 401 }
-    );
-  }
-
-  return Response.json({
-    message: "Admin login successful.",
-    user: {
-      firstName: admin.firstName || "BookStore",
-      lastName: admin.lastName || "Administrator",
-      name: admin.name || "BookStore Administrator",
-      username: admin.username,
-      email: admin.email,
-      role: "admin",
-    },
-  });
-}
-
-// --------------------------------------------------
-// CLIENT LOGIN
-// Email + password
-// --------------------------------------------------
-
-if (action === "login") {
-  if (!email || !password) {
-    return Response.json(
-      { error: "Email and password are required." },
-      { status: 400 }
-    );
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-
-  const result = await dynamoDB.send(
-    new GetCommand({
-      TableName: "Users",
-      Key: {
-        email: normalizedEmail,
-      },
-    })
-  );
-
-  if (!result.Item) {
-    return Response.json(
-      {
-        error: "No account found with this email.",
-      },
-      { status: 404 }
-    );
-  }
-
-  const passwordMatch = await bcrypt.compare(
-    password,
-    result.Item.password
-  );
-
-  if (!passwordMatch) {
-    return Response.json(
-      {
-        error: "Incorrect password.",
-      },
-      { status: 401 }
-    );
-  }
-
-  // Existing accounts without a role
-  // are treated as normal users.
-  const role =
-    result.Item.role === "admin"
-      ? "admin"
-      : "user";
-
-  const firstNameValue =
-    result.Item.firstName ||
-    result.Item.name?.trim().split(/\s+/)[0] ||
-    "";
-
-  const lastNameValue =
-    result.Item.lastName ||
-    result.Item.name?.trim().split(/\s+/).slice(1).join(" ") ||
-    "";
-
-  return Response.json({
-    message: "Login successful.",
-    user: {
-      firstName: firstNameValue,
-      lastName: lastNameValue,
+    const newUser = {
+      email: normalizedEmail,
+      username: username
+        ? String(username).trim()
+        : "",
+      firstName: firstName
+        ? String(firstName).trim()
+        : "",
+      lastName: lastName
+        ? String(lastName).trim()
+        : "",
       name:
-        result.Item.name ||
-        `${firstNameValue} ${lastNameValue}`.trim(),
-      email: result.Item.email,
-      role,
-    },
-  });
-}
-
-// --------------------------------------------------
-// CLIENT SIGN UP
-// --------------------------------------------------
-
-if (!firstName || !lastName || !email || !password) {
-  return Response.json(
-    {
-      error:
-        "First name, last name, email and password are required.",
-    },
-    { status: 400 }
-  );
-}
-
-if (password.length < 6) {
-  return Response.json(
-    {
-      error:
-        "Password must contain at least 6 characters.",
-    },
-    { status: 400 }
-  );
-}
-
-const normalizedEmail = email.trim().toLowerCase();
-
-const existingUser = await dynamoDB.send(
-  new GetCommand({
-    TableName: "Users",
-    Key: {
-      email: normalizedEmail,
-    },
-  })
-);
-
-if (existingUser.Item) {
-  return Response.json(
-    {
-      error:
-        "An account with this email already exists.",
-    },
-    { status: 409 }
-  );
-}
-
-const hashedPassword = await bcrypt.hash(
-  password,
-  10
-);
-
-const cleanFirstName = firstName.trim();
-const cleanLastName = lastName.trim();
-
-const fullName =
-  `${cleanFirstName} ${cleanLastName}`;
-
-// Every normal registration creates
-// a regular user account.
-const role = "user";
-
-await dynamoDB.send(
-  new PutCommand({
-    TableName: "Users",
-
-    Item: {
-      email: normalizedEmail,
-
-      firstName: cleanFirstName,
-
-      lastName: cleanLastName,
-
-      name: fullName,
-
+        name ||
+        `${firstName || ""} ${lastName || ""}`.trim(),
+      phone: phone
+        ? String(phone).trim()
+        : "",
+      address: address
+        ? String(address).trim()
+        : "",
       password: hashedPassword,
-
-      role,
-
+      role: "user",
       createdAt: new Date().toISOString(),
-    },
-  })
-);
+    };
 
-return Response.json(
-  {
-    message:
-      "Account created successfully.",
+    await dynamoDB.send(
+      new PutCommand({
+        TableName: USERS_TABLE,
+        Item: newUser,
+      })
+    );
 
-    user: {
-      firstName: cleanFirstName,
-      lastName: cleanLastName,
-      name: fullName,
-      email: normalizedEmail,
-      role,
-    },
-  },
-  { status: 201 }
-);
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Account created successfully.",
+        user: {
+          email: newUser.email,
+          username: newUser.username,
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          name: newUser.name,
+          phone: newUser.phone,
+          address: newUser.address,
+          role: newUser.role,
+        },
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("Users API error:", error);
 
-
-} catch (error) {
-console.error("User API error:", error);
-
-
-return Response.json(
-  {
-    error: "Something went wrong.",
-  },
-  { status: 500 }
-);
-
-
-}
+    return NextResponse.json(
+      {
+        error:
+          "An error occurred while processing the request.",
+      },
+      { status: 500 }
+    );
+  }
 }

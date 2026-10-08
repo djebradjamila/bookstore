@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import {
   DynamoDBClient,
@@ -25,29 +24,48 @@ export async function GET() {
       ordersResult,
       wishlistResult,
     ] = await Promise.all([
-      // Books
+      // =====================================================
+      // BOOKS
+      // =====================================================
       client.send(
         new ScanCommand({
           TableName: "Books",
         })
       ),
 
-      // Users
+      // =====================================================
+      // USERS
+      // Only accounts with role = user
+      // Administrator accounts are excluded.
+      // =====================================================
       client.send(
         new ScanCommand({
           TableName: "Users",
+          FilterExpression: "#role = :userRole",
+          ExpressionAttributeNames: {
+            "#role": "role",
+          },
+          ExpressionAttributeValues: {
+            ":userRole": {
+              S: "user",
+            },
+          },
           Select: "COUNT",
         })
       ),
 
-      // Orders
+      // =====================================================
+      // ORDERS
+      // =====================================================
       client.send(
         new ScanCommand({
           TableName: "Orders",
         })
       ),
 
-      // Wishlist
+      // =====================================================
+      // WISHLIST
+      // =====================================================
       client.send(
         new ScanCommand({
           TableName: "Wishlists",
@@ -59,14 +77,26 @@ export async function GET() {
     const books = booksResult.Items || [];
     const orders = ordersResult.Items || [];
 
-    // Total statistics
+    // =====================================================
+    // TOTAL STATISTICS
+    // =====================================================
+
     const totalBooks = books.length;
+
+    // Only role=user accounts are counted.
+    // Admin accounts are excluded.
     const totalUsers = usersResult.Count || 0;
+
     const totalOrders = orders.length;
+
     const totalWishlist = wishlistResult.Count || 0;
 
-    // Count books with low stock.
-    // Low stock means between 1 and 5 units.
+    // =====================================================
+    // LOW STOCK
+    // Kept in the API for the stock alert section.
+    // Low stock = between 1 and 5 units.
+    // =====================================================
+
     const lowStock = books.filter((book) => {
       const stock = book.stock?.N
         ? Number(book.stock.N)
@@ -75,7 +105,11 @@ export async function GET() {
       return stock > 0 && stock <= 5;
     }).length;
 
-    // Count books with no stock.
+    // =====================================================
+    // OUT OF STOCK
+    // This is now displayed as the dashboard card.
+    // =====================================================
+
     const outOfStock = books.filter((book) => {
       const stock = book.stock?.N
         ? Number(book.stock.N)
@@ -84,7 +118,11 @@ export async function GET() {
       return stock === 0;
     }).length;
 
-    // Calculate revenue ONLY from confirmed orders.
+    // =====================================================
+    // REVENUE
+    // Only confirmed orders are counted.
+    // =====================================================
+
     const revenue = orders
       .filter((order) => {
         const status = order.status?.S || "";
@@ -98,6 +136,10 @@ export async function GET() {
 
         return total + totalValue;
       }, 0);
+
+    // =====================================================
+    // RESPONSE
+    // =====================================================
 
     return NextResponse.json({
       success: true,
@@ -124,4 +166,3 @@ export async function GET() {
     );
   }
 }
-

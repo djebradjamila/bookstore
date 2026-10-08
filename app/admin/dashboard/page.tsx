@@ -9,7 +9,6 @@ import {
   Wallet,
   Heart,
   Mail,
-  AlertTriangle,
   PackageX,
   ArrowRight,
   Loader2,
@@ -39,13 +38,14 @@ export default function AdminDashboardPage() {
   const [totalMessages, setTotalMessages] = useState(0);
 
   const [loading, setLoading] = useState(true);
-  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] =
+    useState(true);
 
   const [error, setError] = useState("");
 
-  /* =========================================================
-     LOAD DASHBOARD DATA
-  ========================================================= */
+  // =========================================================
+  // LOAD DASHBOARD DATA
+  // =========================================================
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -64,9 +64,9 @@ export default function AdminDashboardPage() {
             }),
           ]);
 
-        /* =====================================================
-           STATISTICS
-        ===================================================== */
+        // =====================================================
+        // STATISTICS
+        // =====================================================
 
         if (!statsResponse.ok) {
           throw new Error(
@@ -74,7 +74,8 @@ export default function AdminDashboardPage() {
           );
         }
 
-        const statsData = await statsResponse.json();
+        const statsData =
+          await statsResponse.json();
 
         if (!statsData.success) {
           throw new Error(
@@ -113,9 +114,9 @@ export default function AdminDashboardPage() {
           ),
         });
 
-        /* =====================================================
-           CONTACT MESSAGES
-        ===================================================== */
+        // =====================================================
+        // CONTACT MESSAGES
+        // =====================================================
 
         if (messagesResponse.ok) {
           const messagesData =
@@ -140,10 +141,7 @@ export default function AdminDashboardPage() {
           setTotalMessages(0);
         }
       } catch (err) {
-        console.error(
-          "Dashboard error:",
-          err
-        );
+        console.error("Dashboard error:", err);
 
         setError(
           "Unable to load dashboard statistics."
@@ -157,9 +155,9 @@ export default function AdminDashboardPage() {
     loadDashboard();
   }, []);
 
-  /* =========================================================
-     STAT CARDS
-  ========================================================= */
+  // =========================================================
+  // STAT CARDS
+  // =========================================================
 
   const statCards = [
     {
@@ -210,12 +208,17 @@ export default function AdminDashboardPage() {
       description: "Contact messages",
     },
 
+    // =====================================================
+    // OUT OF STOCK
+    // Replaces Low Stock card
+    // =====================================================
+
     {
-      title: "Low Stock",
-      value: stats.lowStock,
-      icon: AlertTriangle,
+      title: "Out of Stock",
+      value: stats.outOfStock,
+      icon: PackageX,
       href: "/admin/products",
-      description: "Books with low stock",
+      description: "Books out of stock",
     },
   ];
 
@@ -323,8 +326,6 @@ export default function AdminDashboardPage() {
 
         {/* =====================================================
             STOCK ALERT
-            Only shown when there is actually something to warn
-            about.
         ===================================================== */}
 
         {!loading &&
@@ -342,7 +343,7 @@ export default function AdminDashboardPage() {
                       className="text-red-500"
                     />
                   ) : (
-                    <AlertTriangle
+                    <PackageX
                       size={19}
                       className="text-[#B8892D]"
                     />
@@ -375,6 +376,7 @@ export default function AdminDashboardPage() {
                   {/* ALERT DETAILS */}
 
                   <div className="mt-3 flex flex-wrap gap-2">
+
                     {stats.outOfStock > 0 && (
                       <div className="rounded-lg bg-red-50 px-3 py-2 text-xs">
                         <span className="font-bold text-red-600">
@@ -402,6 +404,7 @@ export default function AdminDashboardPage() {
                         </span>
                       </div>
                     )}
+
                   </div>
                 </div>
               </div>
@@ -409,8 +412,7 @@ export default function AdminDashboardPage() {
           )}
 
         {/* =====================================================
-            SIMPLE FOOTER / STATUS
-            No repeated statistics or Quick Actions.
+            FOOTER / STATUS
         ===================================================== */}
 
         <div className="mt-5 flex flex-col gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -423,6 +425,7 @@ export default function AdminDashboardPage() {
             Dashboard active
           </div>
         </div>
+
       </div>
     </div>
   );

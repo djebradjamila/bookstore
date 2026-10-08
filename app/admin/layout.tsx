@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -10,6 +11,7 @@ import {
   ShoppingCart,
   Heart,
   Mail,
+  UserCircle,
   LogOut,
 } from "lucide-react";
 import { useEffect } from "react";
@@ -53,6 +55,17 @@ const menuItems = [
   },
 ];
 
+const pageTitles: Record<string, string> = {
+  "/admin/dashboard": "Admin Dashboard",
+  "/admin/products": "Admin Products",
+  "/admin/categories": "Admin Categories",
+  "/admin/users": "Admin Users",
+  "/admin/orders": "Admin Orders",
+  "/admin/wishlist": "Admin Wishlist",
+  "/admin/contact": "Admin Contact Messages",
+  "/admin/profile": "Admin Profile",
+};
+
 export default function AdminLayout({
   children,
 }: {
@@ -62,12 +75,14 @@ export default function AdminLayout({
   const router = useRouter();
 
   const {
-    user,
     isAuthenticated,
     isAdmin,
     isLoading,
     logout,
   } = useAuth();
+
+  const pageTitle =
+    pageTitles[pathname] || "Admin Dashboard";
 
   useEffect(() => {
     if (isLoading) return;
@@ -140,7 +155,7 @@ export default function AdminLayout({
         "
       >
         {/* ================================================= */}
-        {/* LOGO */}
+        {/* LOGO / PAGE TITLE */}
         {/* ================================================= */}
 
         <div className="border-b border-white/10 px-2 py-5 sm:px-6 sm:py-6">
@@ -148,21 +163,57 @@ export default function AdminLayout({
             href="/admin/dashboard"
             className="flex items-center justify-center sm:block"
           >
-            {/* Mobile logo */}
+            {/* Mobile */}
             <span className="text-xl font-bold text-[#E8B04A] sm:hidden">
               B
             </span>
 
-            {/* Desktop logo */}
+            {/* Desktop */}
             <div className="hidden sm:block">
               <h1 className="text-xl font-bold tracking-wide text-[#E8B04A]">
                 BookStore
               </h1>
 
               <p className="mt-1 text-xs text-white/50">
-                Admin Dashboard
+                {pageTitle}
               </p>
             </div>
+          </Link>
+        </div>
+
+        {/* ================================================= */}
+        {/* ADMIN PROFILE */}
+        {/* ================================================= */}
+
+        <div className="border-b border-white/10 px-2 py-3 sm:px-4 sm:py-4">
+          <Link
+            href="/admin/profile"
+            title="Admin Profile"
+            className={`
+              flex
+              w-full
+              items-center
+              justify-center
+              rounded-xl
+              px-2
+              py-3
+              transition
+              sm:justify-start
+              sm:gap-3
+              sm:px-4
+              ${
+                pathname === "/admin/profile" ||
+                pathname.startsWith("/admin/profile/")
+                  ? "bg-[#E8B04A] text-[#071A33]"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              }
+            `}
+          >
+            <UserCircle size={20} />
+
+            <span className="hidden text-sm font-medium sm:inline">
+              Admin Profile
+            </span>
           </Link>
         </div>
 
@@ -227,21 +278,7 @@ export default function AdminLayout({
         {/* SIGN OUT */}
         {/* ================================================= */}
 
-        <div className="border-t border-white/10 p-2 sm:mt-auto sm:p-4">
-          {/* Admin account - desktop only */}
-          <div className="mb-2 hidden rounded-xl bg-white/5 px-4 py-3 sm:block">
-            <p className="truncate text-sm font-semibold text-white">
-              {user?.name ||
-                user?.username ||
-                "Administrator"}
-            </p>
-
-            <p className="mt-0.5 truncate text-xs text-white/50">
-              {user?.email || "Admin account"}
-            </p>
-          </div>
-
-          {/* Sign Out */}
+        <div className="border-t border-white/10 p-2 sm:p-4">
           <button
             type="button"
             onClick={handleLogout}
@@ -282,3 +319,4 @@ export default function AdminLayout({
     </div>
   );
 }
+
