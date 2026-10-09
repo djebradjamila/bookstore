@@ -1,420 +1,388 @@
-# 📖 BookStore
+# 📚 BookStore
 
-A production-ready e-commerce web application for discovering, managing, and purchasing books.
+A full-stack e-commerce web application for discovering, managing, and purchasing books online.
+
+BookStore provides a complete online bookstore experience for customers and a dedicated administration interface for managing the store.
 
 ## 📌 Project Overview
 
-BookStore is a full-stack e-commerce application developed with Next.js, React, TypeScript, Tailwind CSS, and DynamoDB.
+BookStore is a web application developed with Next.js, React, TypeScript, Tailwind CSS, and Amazon DynamoDB.
 
-The application provides a complete online bookstore experience, including product browsing, search and filtering, book details, shopping cart management, wishlist management, user authentication, order management, and database integration.
+The application allows customers to browse books, explore categories, manage their shopping carts and wishlists, place orders, and contact the bookstore.
 
-The project was designed with a focus on clean architecture, reusable components, API development, business logic, validation, error handling, and maintainability.
-
----
+Administrators have access to a dedicated dashboard where they can manage books, categories, customers, orders, wishlists, contact messages, and their administrator profile.
 
 ## ✨ Features
 
-### Storefront
+### 👤 Customer Features
 
-* Responsive homepage
-* Navigation bar
-* Book collection
-* Categories
-* Book search
-* Category filtering
-* Sorting
-* Book details
-* Similar books
-* Responsive design
+* **User Authentication:** Register and sign in to a customer account.
+* **Book Catalog:** Browse available books and discover different categories.
+* **Book Details:** View book information, descriptions, prices, and stock availability.
+* **Search and Filtering:** Find books using the available search and category filters.
+* **Shopping Cart:** Add books, remove items, and manage the cart.
+* **Wishlist:** Save favorite books for later.
+* **Checkout:** Enter customer and delivery information when placing an order.
+* **Order History:** View previously placed orders.
+* **Contact Form:** Send messages and inquiries to the bookstore.
+* **Responsive Design:** Use the application on desktop, tablet, and mobile devices.
 
-### Shopping Cart
+### 🔐 Administrator Features
 
-* Add books to cart
-* Increase or decrease quantity
-* Remove books
-* Prevent duplicate cart entries
-* Calculate subtotal
-* Checkout workflow
+* **Administrator Authentication:** Access the administration area through a dedicated sign-in page.
+* **Administrator Profile:** View and update administrator account information.
+* **Admin Dashboard:** Monitor important store statistics, including:
 
-### Wishlist
+  * Total Books
+  * Total Users
+  * Total Orders
+  * Total Wishlist Entries
+  * Total Contact Messages
+  * Revenue from confirmed orders
+  * Low Stock Books
+  * Out of Stock Books
+* **Product Management:** Add, view, edit, and delete books, including their cover images, prices, descriptions, categories, and stock quantities.
+* **Category Management:** Create, update, and delete book categories.
+* **User Management:** View and manage customer accounts.
+* **Order Management:** View, confirm, and delete customer orders, with stock validation before order confirmation.
+* **Wishlist Management:** View and manage customer wishlist entries.
+* **Contact Message Management:** View and manage messages submitted through the contact form.
+* **Responsive Admin Interface:** Manage the store using a layout adapted to desktop and mobile screens.
 
-* Add books to wishlist
-* Remove books from wishlist
-* Wishlist persistence during the application session
-* Prevent duplicate wishlist entries
+### 🛡️ Validation and Error Handling
 
-### Users
+* Validate user input in forms.
+* Validate product prices and stock quantities.
+* Verify stock availability before confirming orders.
+* Handle API errors and database operation failures.
+* Display feedback messages for successful and unsuccessful actions.
 
-* User registration
-* User sign in
-* User data management
-* Authentication validation
-* Protected checkout workflow
+## 🚀 Future Features
 
-### Orders
+The following improvements could be implemented in future versions of BookStore. They are planned possibilities and are not necessarily available in the current application.
 
-* Create orders
-* Store order information
-* Retrieve user orders
-* Display order history
+### 🛍️ 1. Enhanced Shopping Experience
 
-### Validation & Error Handling
+* **Book Reviews and Ratings:** Allow customers to rate books and write reviews.
+* **Personalized Recommendations:** Suggest books based on customer interests and purchase history.
+* **Advanced Search:** Add sorting by price, popularity, publication date, and rating.
+* **Related Books:** Recommend similar titles and books from the same author.
+* **Recently Viewed Books:** Help customers find books they viewed previously.
+* **Promotional Offers:** Add discounts, coupon codes, and seasonal sales.
+* **Restock Notifications:** Notify customers when unavailable books become available again.
 
-* Form validation
-* API validation
-* Error handling
-* Empty states
-* Loading states
-* Custom 404 page
-* Invalid request handling
+### 💳 2. Payment and Order Management
 
----
+* **Online Payments:** Integrate a payment provider such as Stripe or another suitable payment gateway.
+* **Order Tracking:** Let customers follow order progress.
+* **Delivery Status:** Introduce processing, shipped, delivered, and cancelled statuses.
+* **Email Notifications:** Send order confirmation and delivery updates.
+* **Invoice Generation:** Generate downloadable invoices and order receipts.
+* **Order Cancellation:** Allow eligible customers to cancel orders according to defined rules.
+* **Multiple Delivery Addresses:** Allow customers to save and manage delivery addresses.
 
-## 🛠️ Tech Stack
+### 👥 3. Customer Account Improvements
+
+* **Password Recovery:** Allow users to reset forgotten passwords.
+* **Email Verification:** Verify customer email addresses during registration.
+* **Profile Management:** Allow customers to update their personal information and passwords.
+* **Account Security:** Add stronger authentication and suspicious-login notifications.
+* **Customer Dashboard:** Provide a central page for orders, wishlist items, and account details.
+
+### 📊 4. Advanced Administration
+
+* **Advanced Analytics:** Display interactive charts for sales, orders, and customer activity.
+* **Sales Reports:** Export business reports to CSV, Excel, or PDF.
+* **Inventory Alerts:** Notify administrators when stock reaches a configurable threshold.
+* **Sales Analysis:** Analyze sales by book, category, and time period.
+* **Role-Based Access Control:** Support different permissions for administrators and staff members.
+* **Activity Logs:** Record important administrative actions for auditing.
+* **Bulk Product Management:** Import and export multiple books at once.
+* **Review Moderation:** Allow administrators to review and moderate customer reviews.
+* **Promotion Management:** Manage discounts, coupons, and marketing campaigns.
+
+### 🌐 5. Technical Improvements
+
+* **Automated Testing:** Add unit, integration, and end-to-end tests.
+* **Security Improvements:** Implement rate limiting, stronger session management, and additional protections for sensitive operations.
+* **Performance Optimization:** Improve loading times, caching, and database access.
+* **Database Backup:** Implement backup and recovery procedures.
+* **Accessibility:** Improve keyboard navigation, screen-reader support, and accessibility compliance.
+* **Multilingual Support:** Provide the interface in multiple languages.
+* **Progressive Web App (PWA):** Make the application installable on supported devices.
+* **Cloud Deployment:** Deploy the application to a production hosting environment.
+* **Monitoring and Logging:** Add production error monitoring and application performance tracking.
+* **Mobile Application:** Develop a dedicated mobile application or mobile client.
+
+## 🧰 Tech Stack
 
 ### Frontend
 
-* Next.js
-* React
-* TypeScript
-* Tailwind CSS
-* HTML5
-* CSS3
+* **Next.js** — React framework with the App Router.
+* **React** — Component-based user interface.
+* **TypeScript** — Static typing for more maintainable code.
+* **Tailwind CSS** — Utility-first styling.
+* **Lucide React** — Interface icons.
 
 ### Backend
 
-* Next.js Route Handlers
-* Node.js
-* TypeScript
-
-### Database
-
-* Amazon DynamoDB
-* DynamoDB Local for local development
-* AWS SDK for JavaScript
+* **Next.js Route Handlers** — API endpoints and server-side operations.
+* **Amazon DynamoDB** — NoSQL database technology.
+* **DynamoDB Local** — Local database environment for development.
+* **AWS SDK for JavaScript v3** — Communication with DynamoDB.
+* **bcryptjs** — Password hashing where used by the authentication implementation.
 
 ### Development Tools
 
-* Visual Studio Code
-* Git
-* GitHub
-* npm
+* **Node.js**
+* **npm**
+* **Git**
+* **GitHub**
+* **Docker** — Running DynamoDB Local.
 
----
+## 🏗️ Application Structure
 
-## 🏗️ Architecture
-
-The application follows a layered architecture:
-
-```text
-User
-  ↓
-Next.js / React UI
-  ↓
-Components & Client Logic
-  ↓
-Next.js API Route Handlers
-  ↓
-Business Logic
-  ↓
-DynamoDB
-```
-
-The main layers are separated into:
-
-* UI components
-* Pages
-* Client-side state management
-* API routes
-* Business logic
-* Database access
-* Type definitions
-* Environment configuration
-
-This structure helps keep the application maintainable and easier to extend.
-
----
-
-## 📂 Project Structure
+The project uses the Next.js App Router.
 
 ```text
 bookstore/
-│
 ├── app/
-│   ├── api/
+│   ├── admin/
+│   │   ├── signin/
+│   │   ├── dashboard/
+│   │   ├── profile/
+│   │   ├── products/
+│   │   ├── categories/
 │   │   ├── users/
-│   │   ├── books/
-│   │   ├── cart/
+│   │   ├── orders/
 │   │   ├── wishlist/
-│   │   └── orders/
-│   │
+│   │   └── contact/
+│   ├── api/
+│   │   ├── admin/
+│   │   ├── books/
+│   │   ├── categories/
+│   │   ├── contact/
+│   │   ├── messages/
+│   │   ├── orders/
+│   │   ├── users/
+│   │   └── ...
 │   ├── books/
-│   ├── categories/
 │   ├── cart/
-│   ├── wishlist/
+│   ├── categories/
 │   ├── checkout/
+│   ├── orders/
 │   ├── signin/
 │   ├── signup/
-│   ├── orders/
-│   ├── not-found.tsx
-│   ├── page.tsx
+│   ├── wishlist/
+│   ├── contus/
 │   ├── layout.tsx
-│   └── globals.css
-│
+│   └── page.tsx
 ├── components/
-│   ├── Navbar.tsx
-│   ├── CartContext.tsx
-│   ├── WishlistContext.tsx
-│   └── ...
-│
+│   └── Navbar.tsx
+├── contexts/
+├── lib/
+│   └── dynamodb.ts
 ├── public/
 │   └── books/
-│
+├── scripts/
 ├── .env.local
+├── .gitignore
 ├── package.json
+├── tailwind.config.ts
 ├── tsconfig.json
-├── next.config.ts
-├── README.md
-└── ...
+└── README.md
 ```
 
----
+*Note: This structure is illustrative. Some files and folders may differ depending on the current implementation.*
 
-## 🗄️ Database Design
+## 🗄️ Database
 
-DynamoDB is used as the application's database.
+BookStore uses DynamoDB tables to store application data.
 
-The database stores information related to:
+| Table        | Purpose                                                         |
+| ------------ | --------------------------------------------------------------- |
+| `Books`      | Book information, prices, categories, images, and stock         |
+| `Categories` | Book category information                                       |
+| `Users`      | Customer and administrator account data                         |
+| `Orders`     | Customer orders and order details                               |
+| `Wishlists`  | Saved books                                                     |
+| `Messages`   | Messages, if used by the current implementation                 |
+| `Contacts`   | Contact form submissions, if used by the current implementation |
 
-* Users
-* Books / Products
-* Categories
-* Cart data
-* Wishlist data
-* Orders
+The exact table configuration and required attributes depend on the database setup scripts and API implementation.
 
-The application communicates with DynamoDB through the AWS SDK.
+## ⚙️ Prerequisites
 
-For local development, DynamoDB Local is used instead of requiring a production AWS account.
+Before running BookStore locally, make sure you have installed:
 
----
+* Node.js and npm.
+* Docker Desktop or another compatible Docker environment.
+* Git.
 
-## 🔐 Environment Variables
+You also need the project dependencies and a running DynamoDB Local instance.
 
-Sensitive configuration is stored in environment variables instead of being hardcoded in the application.
+## 🚀 Installation and Setup
 
-Example:
-
-```env
-AWS_REGION=local
-DYNAMODB_ENDPOINT=http://localhost:8000
-```
-
-Additional environment variables can be configured according to the local or production environment.
-
-> `.env.local` should not be committed to GitHub.
-
----
-
-## 🚀 Installation
-
-### 1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
+git clone https://github.com/djebradjamila/bookstore.git
 cd bookstore
 ```
 
-### 2. Install dependencies
+### 2. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Configure environment variables
+### 3. Configure Environment Variables
 
-Create a `.env.local` file in the project root:
+Create a `.env.local` file in the project root.
+
+Example configuration for DynamoDB Local:
 
 ```env
-AWS_REGION=local
+DYNAMODB_REGION=local
 DYNAMODB_ENDPOINT=http://localhost:8000
+DYNAMODB_ACCESS_KEY_ID=local
+DYNAMODB_SECRET_ACCESS_KEY=local
 ```
+
+Use the exact environment variable names expected by your project. These values are intended for local development, not production.
+
+**Important:** Never commit `.env.local` or real AWS credentials to GitHub.
 
 ### 4. Start DynamoDB Local
 
-Make sure DynamoDB Local is running on:
+If the project uses the `amazon/dynamodb-local` Docker image, you can start a local instance with:
 
-```text
-http://localhost:8000
+```bash
+docker run -d --name dynamodb-local -p 8000:8000 amazon/dynamodb-local
 ```
 
-### 5. Start the development server
+If the container already exists, start it with:
+
+```bash
+docker start dynamodb-local
+```
+
+Create the required database tables using the project's setup scripts.
+
+### 5. Start the Development Server
 
 ```bash
 npm run dev
 ```
 
-The application will be available at:
+Open:
 
 ```text
 http://localhost:3000
 ```
 
----
+The administrator sign-in page is available at:
 
-## 🧪 Testing
-
-The application was tested during development through:
-
-* Browser testing
-* API endpoint testing
-* Form validation testing
-* Cart functionality testing
-* Wishlist functionality testing
-* Authentication testing
-* Order functionality testing
-* DynamoDB verification
-* Error and 404 page testing
-* Production build verification
-
-The production build can be verified with:
-
-```bash
-npm run build
+```text
+http://localhost:3000/admin/signin
 ```
 
----
+## 🔑 Main Application Pages
+
+### Customer Pages
+
+| Page          | Route         |
+| ------------- | ------------- |
+| Home          | `/`           |
+| Books         | `/books`      |
+| Categories    | `/categories` |
+| Shopping Cart | `/cart`       |
+| Wishlist      | `/wishlist`   |
+| Checkout      | `/checkout`   |
+| My Orders     | `/orders`     |
+| Sign In       | `/signin`     |
+| Sign Up       | `/signup`     |
+| Contact       | `/contus`     |
+
+### Administrator Pages
+
+| Page                  | Route               |
+| --------------------- | ------------------- |
+| Administrator Sign In | `/admin/signin`     |
+| Dashboard             | `/admin/dashboard`  |
+| Administrator Profile | `/admin/profile`    |
+| Products              | `/admin/products`   |
+| Categories            | `/admin/categories` |
+| Users                 | `/admin/users`      |
+| Orders                | `/admin/orders`     |
+| Wishlist              | `/admin/wishlist`   |
+| Contact Messages      | `/admin/contact`    |
 
 ## 🔌 API
 
-The application uses Next.js Route Handlers to expose backend API endpoints.
+The application uses Next.js Route Handlers to manage data and server-side operations.
 
-The API layer is responsible for:
+Depending on the current implementation, API endpoints cover:
 
-* User operations
-* Product/book operations
-* Cart operations
-* Wishlist operations
-* Order operations
-* Database communication
-* Validation
-* Error handling
+* Book management.
+* Category management.
+* User authentication and account management.
+* Administrator statistics and user management.
+* Order creation and administration.
+* Wishlist operations.
+* Contact form submissions and message management.
+* Administrator profile updates.
 
-The API keeps database operations separated from the user interface.
-
----
-
-## 📱 Responsive Design
-
-The application is designed to work across different screen sizes, including:
-
-* Desktop
-* Tablet
-* Mobile
-
-Tailwind CSS is used to implement responsive layouts and reusable styling.
-
----
-
-## ⚠️ Error Handling
-
-The application includes handling for common error scenarios such as:
-
-* Invalid form input
-* Missing data
-* Invalid API requests
-* Empty collections
-* Missing products
-* Invalid pages
-* Database/API errors
-
-A custom 404 page is also provided for unavailable routes.
-
----
+Refer to the `app/api/` directory for the implemented endpoints and their supported HTTP methods.
 
 ## 🔒 Security Considerations
 
-The project follows basic security practices including:
+* Keep environment variables and credentials private.
+* Never expose secret keys in client-side code.
+* Validate user input on the server.
+* Hash passwords before storing them.
+* Protect administrator routes and sensitive API operations with appropriate authorization checks.
+* Verify stock availability before confirming orders.
+* Use HTTPS and secure authentication practices in production.
+* Configure production database permissions with least-privilege access.
 
-* Environment variables for configuration
-* No hardcoded credentials
-* Server-side database communication
-* Input validation
-* API error handling
-* Separation between frontend and database layers
+## 🧪 Available Scripts
 
----
+Run the following commands according to the scripts defined in `package.json`:
 
-## 🌱 Git Workflow
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+```
 
-Git is used for version control.
+Some commands may not be configured in every version of the project. Check `package.json` for the available scripts.
 
-The project is organized into meaningful commits describing major development stages such as:
+## 🤝 Contributing
 
-* Initial project setup
-* Storefront development
-* Cart implementation
-* Wishlist implementation
-* Authentication
-* API development
-* DynamoDB integration
-* Error handling
-* Final improvements
+Contributions and suggestions for improving BookStore are welcome.
 
----
+1. Fork the repository.
+2. Create a feature branch.
+3. Implement and test your changes.
+4. Commit your changes with a descriptive message.
+5. Open a pull request.
 
-## 📸 Screenshots
+## 📌 Project Status
 
-Screenshots demonstrating the main features of the application are included in the project documentation.
-
-Recommended screenshots:
-
-* Homepage
-* Books collection
-* Book details
-* Search and filtering
-* Shopping cart
-* Wishlist
-* Authentication
-* Orders
-* 404 page
-
----
-
-## 📋 Project Requirements
-
-The project covers the main requirements of a production-ready e-commerce application:
-
-* Responsive storefront
-* Product catalog
-* Categories
-* Search and filtering
-* Product details
-* Similar products
-* User management
-* Shopping cart
-* Wishlist
-* Order management
-* API development
-* Database integration
-* Validation
-* Error handling
-* 404 page
-* Responsive UI
-* Environment configuration
-* Git version control
-* Documentation
-
----
+BookStore is an evolving project. Its current functionality includes a customer-facing bookstore and an administration interface. Additional features may be introduced in future versions.
 
 ## 👩‍💻 Author
 
 **Djamila Djebra**
 
-Software Engineering Intern
+Full-stack web development project.
 
----
+GitHub: [djebradjamila](https://github.com/djebradjamila)
+
+Repository: [BookStore](https://github.com/djebradjamila/bookstore)
 
 ## 📄 License
 
-This project was developed as part of a software engineering internship project.
+No license has been specified yet. Add a `LICENSE` file if you intend to distribute the project under a particular open-source license.

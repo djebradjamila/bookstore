@@ -5,7 +5,9 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { dynamoDB } from "@/lib/dynamodb";
 
-// GET - Get all wishlist entries
+const ADMIN_EMAIL = "admin@bookstore.local";
+
+// GET - Get wishlist entries, excluding the administrator
 export async function GET() {
   try {
     const result = await dynamoDB.send(
@@ -14,9 +16,17 @@ export async function GET() {
       })
     );
 
+    const wishlists = (result.Items || []).filter((item) => {
+      const email = String(item.userEmail || "")
+        .trim()
+        .toLowerCase();
+
+      return email !== ADMIN_EMAIL;
+    });
+
     return Response.json({
       success: true,
-      wishlists: result.Items || [],
+      wishlists,
     });
   } catch (error) {
     console.error("Admin wishlist GET error:", error);
@@ -34,15 +44,18 @@ export async function GET() {
 // DELETE - Remove a wishlist entry
 export async function DELETE(request: Request) {
   try {
-    const { userEmail, bookTitle } =
-      await request.json();
+    const { userEmail, bookTitle } = await request.json();
 
-    if (!userEmail || !bookTitle) {
+    if (
+      typeof userEmail !== "string" ||
+      typeof bookTitle !== "string" ||
+      !userEmail.trim() ||
+      !bookTitle.trim()
+    ) {
       return Response.json(
         {
           success: false,
-          error:
-            "User email and book title are required.",
+          error: "User email and book title are required.",
         },
         { status: 400 }
       );
@@ -63,19 +76,14 @@ export async function DELETE(request: Request) {
       message: "Wishlist entry deleted successfully.",
     });
   } catch (error) {
-    console.error(
-      "Admin wishlist DELETE error:",
-      error
-    );
+    console.error("Admin wishlist DELETE error:", error);
 
     return Response.json(
       {
         success: false,
-        error:
-          "Unable to delete wishlist entry.",
+        error: "Unable to delete wishlist entry.",
       },
       { status: 500 }
     );
   }
 }
-
